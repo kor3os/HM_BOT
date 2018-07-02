@@ -19,7 +19,7 @@ const fs = require('fs');
 var warnedUsers = new Map();
 
 function saveWarnedUsers(){
-  fs.writeFile('warns.json', JSON.stringify(Array.Array.from(warnedUsers.entries())), 'utf-8');
+  fs.writeFile('warns.json', JSON.stringify(Array.from(warnedUsers.entries())), 'utf-8');
   console.log(`saved ${warnedUsers.size} warn entries`);
 }
 
