@@ -1,4 +1,4 @@
-membermember  //Hello !
+  //Hello !
   //This bot is being dev'd for the Discord server Hentai Moutarde at https://discord.gg/yYsCw8z
   //It is a french Discord, revolving around hentai (and more, soon(tm))
   //If you plan on stealing this, please kindly go duck yourself.
