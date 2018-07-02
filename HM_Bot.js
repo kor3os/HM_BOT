@@ -44,14 +44,11 @@ function warnMember(member){ //warn a member and mute him if necessary
 }
 
 
-
-
-
   //Runs on bot start
 bot.once("ready", () => {
   console.log(`Bot started, blyat. ${bot.users.size} users.`);
   bot.user.setGame(`https://twitter.com/hentaimoutarde`);
-
+  restoreWarnedUsers();
 });
 
 bot.on("guildCreate", guild => {
