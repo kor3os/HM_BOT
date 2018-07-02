@@ -36,7 +36,7 @@ function warnMember(member){ //warn a member and mute him if necessary
   }else{
     warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) +1);
     if (warnedUsers.get(member.toString())>=3) {
-      member.addRole('463379709049176094', "3rd warning").then().catch(console.error);// id of @Muted on HM.
+      member.addRole('463379709049176094', "3rd warning").catch(console.error);// id of @Muted on HM.
       warnedUsers.delete(member.toString());
     }
   }
@@ -59,6 +59,7 @@ bot.on("message", (message) => {
   if(message.author.bot) return;
   if (message.content.length >= 1000) { // degager les messages de 1000+ chars
     warnMember(message.member);
+    message.delete().catch(console.error);
   }
 
   if(message.channel.id = "388795219560103948") {
