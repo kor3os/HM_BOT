@@ -78,8 +78,9 @@ function warnMember(member){ //warn a member and mute him if necessary
       warnMember(message.member);
       message.delete().catch(console.error);
     }
-    //Deleting "@everyone" made by random people
 
+    //Deleting "@everyone" made by random people
+//Broken
     if (message.content.indexOf("@everyone") == 0) {
       if (message.member.roles.has("463382995466715136") || message.member.roles.has("463383000768446485")) {
         return;
