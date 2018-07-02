@@ -76,6 +76,7 @@ function warnMember(member){ //warn a member and mute him if necessary
     if (message.author.bot) return;
     if (message.content.length >= 1000) { // degager les messages de 1000+ chars
       warnMember(message.member);
+      message.delete().catch(console.error);
     }
     //Deleting "@everyone" made by random people
 
