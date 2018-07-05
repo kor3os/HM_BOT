@@ -81,13 +81,13 @@ function cleanUpColorRoles(guild){
       var commandandargs = message.content.substring(2).split(" "); //split the command and args
       var command = commandandargs[0]; //alias to go faster
       if (command == "color") {
-        if (true/*user has donator role*/) { //FIXME
+        if (message.member.roles.find('name', 'Donateur')) { // si on a le role donateur
           if (commandandargs.length == 2) { // i want exactly 1 argument
             var role = message.member.roles.find(val=> val.name.includes("dncolor")); //find the user's color role if there is one
             if (role) {
               message.member.removeRole(role)
               .then((member) => {
-                setTimeout(cleanUpColorRoles, 500, message.guild);
+                setTimeout(cleanUpColorRoles, 500, message.guild);// dans 1 demi seconde (attendre l'update), retirer tous les roles de couleur vides
               })
               .catch(console.error);
             }
@@ -112,6 +112,7 @@ function cleanUpColorRoles(guild){
         }else { // le mec a pas le droit
           message.reply("Vous devez etre donateur pour utiliser cette commande.");
         }
+        //fin de la commande couleur
     }
 
 
