@@ -13,6 +13,8 @@
   //Contains bot prefix
   const config = require("./config.json");
   const token = require("./token.json");
+  const spamManager = require("./spammanager.js");
+  var SM = new spamManager.Manager(30000);
 
   //Warned users
   const fs = require('fs');
@@ -20,7 +22,7 @@
   var warnedUsers;
 
 
-  /*function saveWarnedUsers() {
+  function saveWarnedUsers() {
     fs.writeFileSync('warns.json', JSON.stringify(Array.from(warnedUsers.entries())), 'utf-8');
     console.log(`saved ${warnedUsers.size} warn entries`);
   }
@@ -40,13 +42,13 @@
     } else {
       warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
       if (warnedUsers.get(member.toString()) >= 3) {
-        member.addRole('463379709049176094', "3rd warning").catch(console.error); // id of @Muted on HM.
+        member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error); // id of @Muted on HM.
         warnedUsers.delete(member.toString());
       }
     }
     saveWarnedUsers();
   }
-  */
+
 
   function cleanUpColorRoles(guild) {
     guild.roles.forEach((value) => {
@@ -56,13 +58,21 @@
     });
   }
 
+  String.prototype.charTally = function charTally(){ // count the number of occurences of each character in the string.
+    return this.split('').reduce((acc, char) => {
+      acc[char] = (acc[char] || 0) +1;
+      return acc;
+    }, {});
+  };
+
 
   //Runs on bot start
   bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity('Etre en beta fermée');
-    //restoreWarnedUsers();
+    restoreWarnedUsers();
   });
+
 
 
   //HELLO
@@ -122,6 +132,13 @@
       var command = commandandargs[0];  //Alias to go faster
       if (command === "warn") { //FIXME
         warnMember(message.member);
+      }else if (command == "spamtimeout") {
+        try {
+          SM.changeTimeout(commandandargs[1]);
+          message.reply(":ok_hand:")
+        } catch (e) {
+          message.reply("Erreur: " + e);
+        }
       }
 
 
@@ -139,6 +156,17 @@
         message.delete().then(msg => console.log(`Deleted message from ${msg.author.username} with content = ${msg.content};; content check = ` + st)); //Echo the message in console
       }
     }
+
+    var tally = message.content.charTally();
+
+    if (!message.member.roles.find('name', 'Généraux')) {
+      if (SM.isSpam(message.content)) {
+        warnMember(message.member);
+        message.reply("on se calme.");
+        message.delete().catch(console.error);
+      }
+    }
+
   });
 
 
