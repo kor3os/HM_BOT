@@ -1,6 +1,6 @@
 module.exports = {
   Manager : function (){
-    this.slowmode = require("./slowmode.js");
+    var slowmode = require("./slowmode.js");
     this.slowModes = new Map();
     this.addSlowMode = function (channel, timeout){
       this.slowModes.set(channel, new slowmode.SM(timeout));

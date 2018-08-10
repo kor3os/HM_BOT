@@ -17,7 +17,7 @@ module.exports={
         return true;
       }else{
         this.users.push(message.author);
-        this.timers.push(setTimeOut(this.popUser(), this.timeout));
+        this.timers.push(setTimeout(this.popUser(), this.timeout));
         return false;
       }
     }
