@@ -16,6 +16,9 @@
   const spamManager = require("./spammanager.js");
   var SM = new spamManager.Manager(30000);
 
+
+  const slowModeManager = require("./slowmodemanager.js");
+  var slowmode = new slowModeManager.Manager();
   //Warned users
   const fs = require('fs');
   const util = require('util');
@@ -52,8 +55,8 @@
 
   function cleanUpColorRoles(guild) {
     guild.roles.forEach((value) => {
-      if (value.name.includes("dncolor") && value.members.size == 0) {
-        value.delete()
+      if (value.name.includes("dncolor") && value.members.size === 0) {
+        value.delete();
       }
     });
   }
@@ -135,10 +138,22 @@
       }else if (command == "spamtimeout") {
         try {
           SM.changeTimeout(commandandargs[1]);
-          message.reply(":ok_hand:")
+          message.reply(":ok_hand:");
         } catch (e) {
           message.reply("Erreur: " + e);
         }
+      }else if(command == "slowmode"){
+        try{
+            if(commandandargs[1] == "0"){
+            slowmode.removeSlowMode(message.channel);
+          }else{
+            slowmode.addSlowMode(message.channel, commandandargs[1]);
+          }
+          message.reply(":ok_hand:");
+        } catch(e){
+          message.reply("Erreur: " +e);
+        }
+        
       }
 
 
@@ -160,6 +175,9 @@
     var tally = message.content.charTally();
 
     if (!message.member.roles.find('name', 'Généraux')) {
+      if (slowmode.isPrevented(message)){
+        message.delete().catch(console.error);
+      }
       if (SM.isSpam(message.content)) {
         warnMember(message.member);
         message.reply("on se calme.");
