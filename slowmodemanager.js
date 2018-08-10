@@ -11,7 +11,8 @@ module.exports = {
     }
     
     this.isPrevented = function(message){
-      return this.slowModes.get(message.channel).isPrevented(message);
+      var sm = this.slowModes.get(message.channel);
+      return sm !== undefined && sm.isPrevented(message);
     }
     
     this.removeSlowMode = function(channel){
