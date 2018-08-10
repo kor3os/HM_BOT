@@ -177,8 +177,7 @@
     if (!message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
         message.delete().catch(console.error);
-      }
-      if (SM.isSpam(message.content)) {
+      }else if (SM.isSpam(message.content)) {
         warnMember(message.member);
         message.reply("on se calme.");
         message.delete().catch(console.error);
