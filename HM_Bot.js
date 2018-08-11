@@ -147,7 +147,16 @@
             if(commandandargs[1] == "0"){
             slowmode.removeSlowMode(message.channel);
           }else{
-            slowmode.addSlowMode(message.channel, commandandargs[1]);
+            if(commandandargs[1].endsWith("h")){
+              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
+            }else if(commandandargs[1].endsWith("m")){
+              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
+            }else if(commandandargs[1].endsWith("ms")){
+              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
+            }else{
+              slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
+
+            }
           }
           message.reply(":ok_hand:");
         } catch(e){
