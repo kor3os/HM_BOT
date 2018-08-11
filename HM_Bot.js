@@ -184,7 +184,7 @@
       }
     }
 
-    var tally = message.content.charTally();
+    var tally = Math.max(message.content.charTally());
 
     if (!message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
@@ -192,6 +192,10 @@
       }else if (SM.isSpam(message.content)) {
         warnMember(message.member);
         message.reply("on se calme.");
+        message.delete().catch(console.error);
+      }else if(tally > message.content.length*0.75){
+        warnMember(message.member);
+        message.reply("stop spam, merci.");
         message.delete().catch(console.error);
       }
     }
