@@ -1,3 +1,6 @@
+//this module s the timekeeper for the slowmode of a single channel.
+//it is so focused on a single channel, in fact, that it has no concept of it.
+//to be used by slowmodemanager.js, not intended for standalone use.
 module.exports={
   SM : function(timeout){
     this.timeout = timeout;
@@ -12,7 +15,7 @@ module.exports={
       this.users = [];
     }
     
-    this.isPrevented = function (message){
+    this.isPrevented = function (message){ //returns true if the message should be deleted.
       if(this.users.includes(message.author)){
         return true;
       }else{

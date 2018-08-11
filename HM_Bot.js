@@ -145,27 +145,27 @@
       }else if(command == "slowmode"){
         try{
             if(commandandargs[1] == 0){
-            slowmode.removeSlowMode(message.channel);
-          }else if(commandandargs[1]=="help"){
-            message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
-          }else{
-            if(commandandargs[1].endsWith("h")){
-              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
-            }else if(commandandargs[1].endsWith("m")){
-              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
-            }else if(commandandargs[1].endsWith("ms")){
-              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
-            }else if(commandandargs[1].endsWith("s")){
-              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
+              slowmode.removeSlowMode(message.channel);
+              message.reply(":ok_hand:");
+            }else if(commandandargs[1]=="help"){
+              message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
             }else{
-              slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
+              if(commandandargs[1].endsWith("h")){
+                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
+              }else if(commandandargs[1].endsWith("m")){
+                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
+              }else if(commandandargs[1].endsWith("ms")){
+                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
+              }else if(commandandargs[1].endsWith("s")){
+                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
+              }else{
+                slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
+              }
+            message.reply(":ok_hand:");
             }
-          }
-          message.reply(":ok_hand:");
         } catch(e){
           message.reply("Erreur: " +e);
         }
-        
       }
 
 
@@ -183,8 +183,12 @@
         message.delete().then(msg => console.log(`Deleted message from ${msg.author.username} with content = ${msg.content};; content check = ` + st)); //Echo the message in console
       }
     }
-
-    var tally = Math.max(message.content.charTally());
+    
+    var tallyarray = [];
+    message.content.charTally()forEach(function(val, key, map){
+      tallyArray.push(val);
+    });
+    var highestcount = Math.max(tallyArray);
 
     if (!message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
@@ -193,7 +197,7 @@
         warnMember(message.member);
         message.reply("on se calme.");
         message.delete().catch(console.error);
-      }else if(tally > message.content.length*0.75){
+      }else if(highestcount > message.content.length*0.75){
         warnMember(message.member);
         message.reply("stop spam, merci.");
         message.delete().catch(console.error);
