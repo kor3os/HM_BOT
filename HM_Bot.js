@@ -144,8 +144,10 @@
         }
       }else if(command == "slowmode"){
         try{
-            if(commandandargs[1] == "0"){
+            if(commandandargs[1] == 0){
             slowmode.removeSlowMode(message.channel);
+          }else if(commandandargs[1]=="help"){
+            message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
           }else{
             if(commandandargs[1].endsWith("h")){
               slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
@@ -153,9 +155,10 @@
               slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
             }else if(commandandargs[1].endsWith("ms")){
               slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
+            }else if(commandandargs[1].endsWith("s")){
+              slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
             }else{
               slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
-
             }
           }
           message.reply(":ok_hand:");
