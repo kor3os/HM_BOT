@@ -182,12 +182,12 @@
     }
     
     var tallyArray = [];
-    var tally = [message.content.charTally()];
-    tally.forEach(function(val, key, map){
-      tallyArray.push(val);
-    });
-    var highestcount = Math.max(tallyArray);
-
+    var tally = message.content.charTally();
+    for(var prop in tally){
+      if(tally.hasOwnProperty(prop));
+      tallyArray.push(tally[prop]);
+    }
+    var highestcount = Math.max(...tallyArray);
     if (!message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
@@ -196,7 +196,7 @@
         warnMember(message.member);
         message.reply("on se calme.(warn)");
         message.delete().catch(console.error);
-      }else if(highestcount > message.content.length*0.75){
+      }else if((highestcount+1)/(message.content.length+2) > 0.75){
         warnMember(message.member);
         message.reply("stop spam, merci.(warn)");
         message.delete().catch(console.error);
