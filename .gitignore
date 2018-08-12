@@ -2,4 +2,5 @@
 token\.json
 warns\.json
 test\.js
+protectednames\.json
 node_modules

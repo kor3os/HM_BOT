@@ -24,7 +24,6 @@
   const util = require('util');
   var warnedUsers;
 
-
   function saveWarnedUsers() {
     fs.writeFileSync('warns.json', JSON.stringify(Array.from(warnedUsers.entries())), 'utf-8');
     console.log(`saved ${warnedUsers.size} warn entries`);
@@ -33,7 +32,6 @@
   function restoreWarnedUsers() {
     var text = fs.readFileSync('warns.json');
     warnedUsers = new Map(JSON.parse(text));
-    console.log(warnedUsers);
     console.log(`restored ${warnedUsers.size} warn entries`);
   }
 
@@ -69,11 +67,23 @@
   };
 
 
+  var prtotectednames;
+  function saveProtectedNames(){
+    fs.writeFileSync('protectednames.json', JSON.stringify(Array.from(protectednames.entries())), 'utf-8');
+  }
+  
+  function restoreProtectedNames(){
+    var text = fs.readFileSync('protectednames.json');
+    protectednames = new Map(JSON.parse(text));
+  }
+
+
   //Runs on bot start
   bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity('Etre en beta fermée');
     restoreWarnedUsers();
+    restoreProtectedNames();
   });
 
 
@@ -166,6 +176,13 @@
         } catch(e){
           message.reply("Erreur: " +e);
         }
+      }else if(command == "setprotectedname"){
+        if(commandandargs.length == 3){
+          protectednames.set(commandandargs[1].toLowerCase(), commandandargs[2].slice(2, -1));
+          saveProtectedNames();
+        }else{
+          message.reply("usage: setprotectedname <name> <@user>");
+        }
       }
 
 
@@ -203,6 +220,19 @@
       }
     }
 
+  });
+
+
+  bot.on("guildMemberUpdate", (oldMember, newMember) => {
+    if(newMember.nickname){
+      if(oldMember.nickname != newMember.nickname){
+        if(protectednames.get(newMember.nickname.toLowerCase()) && protectednames.get(newMember.nickname.toLowerCase()) != newMember.id){
+          warnMember(newMember);
+          newMember.setNickname("LE FAUX "+ newMember.nickname, "Protected name.");
+        }
+      }
+      
+    }
   });
 
 
