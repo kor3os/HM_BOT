@@ -127,64 +127,76 @@
                   message.member.addRole(role);
                 });
             }
+          
+          } else {  //Le mec a le droit mais il sait pas faire
+            message.reply("Example: `color #FF4200`");
           }
-        } else {  //Le mec a le droit mais il sait pas faire
-          message.reply("Example: `color #FF4200`");
+        } else {  //Le mec a pas le droit
+          message.reply("Vous devez etre donateur pour utiliser cette commande.");
         }
-      } else {  //Le mec a pas le droit
-        message.reply("Vous devez etre donateur pour utiliser cette commande.");
+      } else if(command == "help"){
+        message.reply("voici mes commandes utilisateur:\n\
+-color <code couleur/reset> : Seulement pour les donateurs; change la couleur de votre nom au code couleur choisi.\n\
+\texemple: color #FF4200");
       }
-      //Fin de la commande couleur
-    }
+  }
 
 
 
     if (message.content.startsWith(config.prefixm)) { //Mod commands
-      // TODO: check for user's role
-      var commandandargs = message.content.substring(3).split(" "); //Split the command and args
-      var command = commandandargs[0];  //Alias to go faster
-      if (command === "warn") { //FIXME
-        warnMember(message.member);
-      }else if (command == "spamtimeout") {
-        try {
-          SM.changeTimeout(commandandargs[1]);
-          message.reply(":ok_hand:");
-        } catch (e) {
-          message.reply("Erreur: " + e);
-        }
-      }else if(command == "slowmode"){
-        try{
-            if(commandandargs[1] == 0){
-              slowmode.removeSlowMode(message.channel);
-              message.reply(":ok_hand:");
-            }else if(commandandargs[1]=="help"){
-              message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
-            }else{
-              if(commandandargs[1].endsWith("h")){
-                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
-              }else if(commandandargs[1].endsWith("m")){
-                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
-              }else if(commandandargs[1].endsWith("ms")){
-                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
-              }else if(commandandargs[1].endsWith("s")){
-                slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
-              }else{
-                slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
-              }
+      if(message.member.roles.find("name", "Généraux") || message.member.roles.find("name", "Salade de fruits")){
+        var commandandargs = message.content.substring(3).split(" "); //Split the command and args
+        var command = commandandargs[0];  //Alias to go faster
+        if (command === "warn") { //FIXME
+          warnMember(message.member);
+        }else if (command == "spamtimeout") {
+          try {
+            SM.changeTimeout(commandandargs[1]);
             message.reply(":ok_hand:");
-            }
-        } catch(e){
-          message.reply("Erreur: " +e);
+          } catch (e) {
+            message.reply("Erreur: " + e);
+          }
+        }else if(command == "slowmode"){
+          try{
+              if(commandandargs[1] == 0){
+                slowmode.removeSlowMode(message.channel);
+                message.reply(":ok_hand:");
+              }else if(commandandargs[1]=="help"){
+                message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
+              }else{
+                if(commandandargs[1].endsWith("h")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
+                }else if(commandandargs[1].endsWith("m")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
+                }else if(commandandargs[1].endsWith("ms")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
+                }else if(commandandargs[1].endsWith("s")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
+                }else{
+                  slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
+                }
+              message.reply(":ok_hand:");
+              }
+          } catch(e){
+            message.reply("Erreur: " +e);
+          }
+        }else if(command == "setprotectedname"){
+          if(commandandargs.length == 3){
+            protectednames.set(commandandargs[1].toLowerCase(), commandandargs[2].slice(2, -1));
+            saveProtectedNames();
+            message.reply(":ok_hand:");
+          }else{
+            message.reply("usage: setprotectedname <name> <@user>");
+          }
+        }else if(command == "help"){
+          message.reply("voici mes commandes moderateur:\n\
+-spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)\n\
+-slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.\n\
+-setprotectedname <name> <@user> : reserve un nom pour @user. plusieurs noms par user possibles."):
         }
-      }else if(command == "setprotectedname"){
-        if(commandandargs.length == 3){
-          protectednames.set(commandandargs[1].toLowerCase(), commandandargs[2].slice(2, -1));
-          saveProtectedNames();
-        }else{
-          message.reply("usage: setprotectedname <name> <@user>");
-        }
-      }
 
+      }
+      
 
     }
 
@@ -228,7 +240,7 @@
       if(oldMember.nickname != newMember.nickname){
         if(protectednames.get(newMember.nickname.toLowerCase()) && protectednames.get(newMember.nickname.toLowerCase()) != newMember.id){
           warnMember(newMember);
-          newMember.setNickname("LE FAUX "+ newMember.nickname, "Protected name.");
+          newMember.setNickname("LE FAUX "+ newMember.nickname, "Protected name.").catch(console.error);
         }
       }
       
