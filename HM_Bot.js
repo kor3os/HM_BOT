@@ -107,7 +107,7 @@
             if (role) {
               message.member.removeRole(role)
                 .then((member) => {
-                  setTimeout(cleanUpColorRoles, 500, message.guild);  //Dans 1 demi seconde (attendre l'update), retirer tous les roles de couleur vides
+                  setTimeout(cleanUpColorRoles, 60000, message.guild);  //Dans 1 demi seconde (attendre l'update), retirer tous les roles de couleur vides
                 })
                 .catch(console.error);
             }
