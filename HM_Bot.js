@@ -23,6 +23,13 @@
   const fs = require('fs');
   const util = require('util');
   var warnedUsers;
+  
+  var ignoredChannels = [311496070074990593,
+                        300647029925740564,
+                        403840920119672842,
+                        392369265740611584,
+                        406504728688721930];
+  console.log(ignoredChannels.getClass);
 
   function saveWarnedUsers() {
     fs.writeFileSync('warns.json', JSON.stringify(Array.from(warnedUsers.entries())), 'utf-8');
@@ -107,7 +114,6 @@
             if (role) {
               message.member.removeRole(role)
                 .then((member) => {
-                  setTimeout(cleanUpColorRoles, 60000, message.guild);  //Dans 1 demi seconde (attendre l'update), retirer tous les roles de couleur vides
                 })
                 .catch(console.error);
             }
@@ -124,8 +130,10 @@
                   mentionable: false
                 })
                 .then((role) => {
-                  message.member.addRole(role);
+                  message.member.addRole(role).then(promise => cleanUpColorRoles(message.guild));
                 });
+            }else{
+              cleanUpColorRoles(message.guild);
             }
           
           } else {  //Le mec a le droit mais il sait pas faire
@@ -148,7 +156,10 @@
         var commandandargs = message.content.substring(3).split(" "); //Split the command and args
         var command = commandandargs[0];  //Alias to go faster
         if (command === "warn") { //FIXME
-          warnMember(message.member);
+          message.mentions.members.forEach(function(member, id, members){
+            warnMember(member);
+          });
+          message.reply(":ok_hand:");
         }else if (command == "spamtimeout") {
           try {
             SM.changeTimeout(commandandargs[1]);
@@ -190,6 +201,7 @@
           }
         }else if(command == "setgame"){
           bot.user.setActivity(message.content.substring(11));
+          message.reply("game set to " + message.content.substring(11));
         }
         else if(command == "help"){
           message.reply("voici mes commandes moderateur:\n\
@@ -221,7 +233,7 @@
       tallyArray.push(tally[prop]);
     }
     var highestcount = Math.max(...tallyArray);
-    if (!message.member.roles.find('name', 'Généraux')) {
+    if (!message.member.roles.find('name', 'Généraux') || !ignoredChannels.includes(message.channel.id)) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
