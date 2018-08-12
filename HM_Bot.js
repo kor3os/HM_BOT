@@ -173,33 +173,32 @@
 
 
     //Deleting "@everyone" made by random people
-    // Broken
     if (message.content.includes("@everyone")) {  //Si le message contient un everyone
-      if (message.member.roles.find('name', 'Salade de fruits') || message.member.roles.find('name', 'Généraux')) {
-        console.log("everyone ignoré => Salade ou Général");
-        return;
-      } else {
-        var st = message.content;
-        message.delete().then(msg => console.log(`Deleted message from ${msg.author.username} with content = ${msg.content};; content check = ` + st)); //Echo the message in console
+      if (!(message.member.roles.find('name', 'Salade de fruits') || message.member.roles.find('name', 'Généraux'))) {
+        warnMember(message.member);
+        message.reply("tu pense faire quoi, au juste? (warn)");
+        message.delete().catch(console.error);
       }
     }
     
-    var tallyarray = [];
-    message.content.charTally()forEach(function(val, key, map){
+    var tallyArray = [];
+    var tally = [message.content.charTally()];
+    tally.forEach(function(val, key, map){
       tallyArray.push(val);
     });
     var highestcount = Math.max(tallyArray);
 
     if (!message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
+        message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
       }else if (SM.isSpam(message.content)) {
         warnMember(message.member);
-        message.reply("on se calme.");
+        message.reply("on se calme.(warn)");
         message.delete().catch(console.error);
       }else if(highestcount > message.content.length*0.75){
         warnMember(message.member);
-        message.reply("stop spam, merci.");
+        message.reply("stop spam, merci.(warn)");
         message.delete().catch(console.error);
       }
     }
