@@ -237,7 +237,7 @@
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
-      }else if (SM.isSpam(message.content)) {
+      }else if (message.attachments.size ===0 && SM.isSpam(message.content)) {
         warnMember(message.member);
         message.reply("on se calme.(warn)");
         message.delete().catch(console.error);
