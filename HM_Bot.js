@@ -188,11 +188,15 @@
           }else{
             message.reply("usage: setprotectedname <name> <@user>");
           }
-        }else if(command == "help"){
+        }else if(command == "setgame"){
+          bot.user.setActivity(message.content.substring(11));
+        }
+        else if(command == "help"){
           message.reply("voici mes commandes moderateur:\n\
 -spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)\n\
 -slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.\n\
--setprotectedname <name> <@user> : reserve un nom pour @user. plusieurs noms par user possibles.");
+-setprotectedname <name> <@user> : reserve un nom pour @user. plusieurs noms par user possibles.\n\
+-setgame <game> : change la phrase de profil du bot.");
         }
 
       }
