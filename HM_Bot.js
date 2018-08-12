@@ -158,7 +158,6 @@
         if (command === "warn") { //FIXME
           message.mentions.members.forEach(function(member, id, members){
             warnMember(member);
-            message.reply(":ok_hand:");
           });
           message.reply(":ok_hand:");
         }else if (command == "spamtimeout") {
