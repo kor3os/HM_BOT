@@ -193,7 +193,7 @@
             message.reply("Erreur: " +e);
           }
         }else if(command == "setprotectedname"){
-          if(message.mentions.size === 1){
+          if(commandandargs[1].startsWith("<@")){
             protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(3, -1));
             saveProtectedNames();
             message.reply(":ok_hand:");
