@@ -234,7 +234,7 @@
       tallyArray.push(tally[prop]);
     }
     var highestcount = Math.max(...tallyArray);
-    if (!message.member.roles.find('name', 'Généraux') && !ignoredChannels.includes(message.channel.id)) {
+    if (!ignoredChannels.includes(message.channel.id) || !message.member.roles.find('name', 'Généraux')) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
