@@ -13,14 +13,25 @@
   //Contains bot prefix
   const config = require("./config.json");
   const token = require("./token.json");
+  const spamManager = require("./spammanager.js");
+  var SM = new spamManager.Manager(30000);
 
+
+  const slowModeManager = require("./slowmodemanager.js");
+  var slowmode = new slowModeManager.Manager();
   //Warned users
   const fs = require('fs');
   const util = require('util');
   var warnedUsers;
+  
+  var ignoredChannels = [311496070074990593,
+                        300647029925740564,
+                        403840920119672842,
+                        392369265740611584,
+                        406504728688721930];
+  console.log(ignoredChannels.getClass);
 
-
-  /*function saveWarnedUsers() {
+  function saveWarnedUsers() {
     fs.writeFileSync('warns.json', JSON.stringify(Array.from(warnedUsers.entries())), 'utf-8');
     console.log(`saved ${warnedUsers.size} warn entries`);
   }
@@ -28,7 +39,6 @@
   function restoreWarnedUsers() {
     var text = fs.readFileSync('warns.json');
     warnedUsers = new Map(JSON.parse(text));
-    console.log(warnedUsers);
     console.log(`restored ${warnedUsers.size} warn entries`);
   }
 
@@ -40,20 +50,38 @@
     } else {
       warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
       if (warnedUsers.get(member.toString()) >= 3) {
-        member.addRole('463379709049176094', "3rd warning").catch(console.error); // id of @Muted on HM.
+        member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error); // id of @Muted on HM.
         warnedUsers.delete(member.toString());
       }
     }
     saveWarnedUsers();
   }
-  */
+
 
   function cleanUpColorRoles(guild) {
     guild.roles.forEach((value) => {
-      if (value.name.includes("dncolor") && value.members.size == 0) {
-        value.delete()
+      if (value.name.includes("dncolor") && value.members.size === 0) {
+        value.delete();
       }
     });
+  }
+
+  String.prototype.charTally = function charTally(){ // count the number of occurences of each character in the string.
+    return this.split('').reduce((acc, char) => {
+      acc[char] = (acc[char] || 0) +1;
+      return acc;
+    }, {});
+  };
+
+
+  var prtotectednames;
+  function saveProtectedNames(){
+    fs.writeFileSync('protectednames.json', JSON.stringify(Array.from(protectednames.entries())), 'utf-8');
+  }
+  
+  function restoreProtectedNames(){
+    var text = fs.readFileSync('protectednames.json');
+    protectednames = new Map(JSON.parse(text));
   }
 
 
@@ -61,8 +89,10 @@
   bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity('Etre en beta fermée');
-    //restoreWarnedUsers();
+    restoreWarnedUsers();
+    restoreProtectedNames();
   });
+
 
 
   //HELLO
@@ -84,7 +114,6 @@
             if (role) {
               message.member.removeRole(role)
                 .then((member) => {
-                  setTimeout(cleanUpColorRoles, 500, message.guild);  //Dans 1 demi seconde (attendre l'update), retirer tous les roles de couleur vides
                 })
                 .catch(console.error);
             }
@@ -101,43 +130,137 @@
                   mentionable: false
                 })
                 .then((role) => {
-                  message.member.addRole(role);
+                  message.member.addRole(role).then(promise => cleanUpColorRoles(message.guild));
                 });
+            }else{
+              cleanUpColorRoles(message.guild);
             }
+          
+          } else {  //Le mec a le droit mais il sait pas faire
+            message.reply("Example: `color #FF4200`");
           }
-        } else {  //Le mec a le droit mais il sait pas faire
-          message.reply("Example: `color #FF4200`");
+        } else {  //Le mec a pas le droit
+          message.reply("Vous devez etre donateur pour utiliser cette commande.");
         }
-      } else {  //Le mec a pas le droit
-        message.reply("Vous devez etre donateur pour utiliser cette commande.");
+      } else if(command == "help"){
+        message.reply("voici mes commandes utilisateur:\n\
+-color <code couleur/reset> : Seulement pour les donateurs; change la couleur de votre nom au code couleur choisi.\n\
+\texemple: color #FF4200");
       }
-      //Fin de la commande couleur
-    }
+  }
 
 
 
     if (message.content.startsWith(config.prefixm)) { //Mod commands
-      // TODO: check for user's role
-      var commandandargs = message.content.substring(3).split(" "); //Split the command and args
-      var command = commandandargs[0];  //Alias to go faster
-      if (command === "warn") { //FIXME
-        warnMember(message.member);
-      }
+      if(message.member.roles.find("name", "Généraux") || message.member.roles.find("name", "Salade de fruits")){
+        var commandandargs = message.content.substring(3).split(" "); //Split the command and args
+        var command = commandandargs[0];  //Alias to go faster
+        if (command === "warn") { //FIXME
+          message.mentions.members.forEach(function(member, id, members){
+            warnMember(member);
+          });
+          message.reply(":ok_hand:");
+        }else if (command == "spamtimeout") {
+          try {
+            SM.changeTimeout(commandandargs[1]);
+            message.reply(":ok_hand:");
+          } catch (e) {
+            message.reply("Erreur: " + e);
+          }
+        }else if(command == "slowmode"){
+          try{
+              if(commandandargs[1] == 0){
+                slowmode.removeSlowMode(message.channel);
+                message.reply(":ok_hand:");
+              }else if(commandandargs[1]=="help"){
+                message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
+              }else{
+                if(commandandargs[1].endsWith("h")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60*60);
+                }else if(commandandargs[1].endsWith("m")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000*60);
+                }else if(commandandargs[1].endsWith("ms")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-2));
+                }else if(commandandargs[1].endsWith("s")){
+                  slowmode.addSlowMode(message.channel, commandandargs[1].slice(0,-1)*1000);
+                }else{
+                  slowmode.addSlowMode(message.channel, commandandargs[1]*1000);
+                }
+              message.reply(":ok_hand:");
+              }
+          } catch(e){
+            message.reply("Erreur: " +e);
+          }
+        }else if(command == "setprotectedname"){
+          if(commandandargs.length == 3){
+            protectednames.set(commandandargs[1].toLowerCase(), commandandargs[2].slice(2, -1));
+            saveProtectedNames();
+            message.reply(":ok_hand:");
+          }else{
+            message.reply("usage: setprotectedname <name> <@user>");
+          }
+        }else if(command == "setgame"){
+          bot.user.setActivity(message.content.substring(11));
+          message.reply("game set to " + message.content.substring(11));
+        }
+        else if(command == "help"){
+          message.reply("voici mes commandes moderateur:\n\
+-warn <@user> [reason] : ajoute un warning a user. reason est inutile et sert juste a faire peur.\n\
+-spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)\n\
+-slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.\n\
+-setprotectedname <name> <@user> : reserve un nom pour @user. plusieurs noms par user possibles.\n\
+-setgame <game> : change la phrase de profil du bot.");
+        }
 
+      }
+      
 
     }
 
 
     //Deleting "@everyone" made by random people
-    // Broken
     if (message.content.includes("@everyone")) {  //Si le message contient un everyone
-      if (message.member.roles.find('name', 'Salade de fruits') || message.member.roles.find('name', 'Généraux')) {
-        console.log("everyone ignoré => Salade ou Général");
-        return;
-      } else {
-        var st = message.content;
-        message.delete().then(msg => console.log(`Deleted message from ${msg.author.username} with content = ${msg.content};; content check = ` + st)); //Echo the message in console
+      if (!(message.member.roles.find('name', 'Salade de fruits') || message.member.roles.find('name', 'Généraux'))) {
+        warnMember(message.member);
+        message.reply("tu pense faire quoi, au juste? (warn)");
+        message.delete().catch(console.error);
       }
+    }
+    
+    var tallyArray = [];
+    var tally = message.content.charTally();
+    for(var prop in tally){
+      if(tally.hasOwnProperty(prop));
+      tallyArray.push(tally[prop]);
+    }
+    var highestcount = Math.max(...tallyArray);
+    if (!message.member.roles.find('name', 'Généraux') || !ignoredChannels.includes(message.channel.id)) {
+      if (slowmode.isPrevented(message)){
+        message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
+        message.delete().catch(console.error);
+      }else if (message.attachments.size ===0 && SM.isSpam(message.content)) {
+        warnMember(message.member);
+        message.reply("on se calme.(warn)");
+        message.delete().catch(console.error);
+      }else if((highestcount+1)/(message.content.length+2) > 0.75){
+        warnMember(message.member);
+        message.reply("stop spam, merci.(warn)");
+        message.delete().catch(console.error);
+      }
+    }
+
+  });
+
+
+  bot.on("guildMemberUpdate", (oldMember, newMember) => {
+    if(newMember.nickname){
+      if(oldMember.nickname != newMember.nickname){
+        if(protectednames.get(newMember.nickname.toLowerCase()) && protectednames.get(newMember.nickname.toLowerCase()) != newMember.id){
+          warnMember(newMember);
+          newMember.setNickname("LE FAUX "+ newMember.nickname, "Protected name.").catch(console.error);
+        }
+      }
+      
     }
   });
 
