@@ -24,11 +24,12 @@
   const util = require('util');
   var warnedUsers;
   
-  var ignoredChannels = [311496070074990593,
-                        300647029925740564,
-                        403840920119672842,
-                        392369265740611584,
-                        406504728688721930];
+  var ignoredChannels = ["les-bg-pas-pd",
+                        "dev",
+                        "vip",
+                        "modlogs",
+                        "couchoux",
+                        "spam_admin_issou"];
   console.log(ignoredChannels.getClass);
 
   function saveWarnedUsers() {
@@ -235,10 +236,7 @@
     }
     var highestcount = Math.max(...tallyArray);
     
-    console.log("ignored: " +ignoredChannels.includes(message.channel.id));
-    console.log("channel id : " + message.channel.id);
-    
-    if (!(ignoredChannels.includes(message.channel.id) || message.member.roles.find('name', 'Généraux'))) {
+    if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find('name', 'Généraux'))) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
