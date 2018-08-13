@@ -89,7 +89,7 @@
   //Runs on bot start
   bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
-    bot.user.setActivity('Etre en beta');
+    bot.user.setActivity('twitter.com/hentaimoutarde');
     restoreWarnedUsers();
     restoreProtectedNames();
   });
@@ -100,10 +100,7 @@
   bot.on("message", (message) => {
 
     if (message.author.bot) return;
-    if (message.content.length >= 1000) { //Degager les messages de 1000+ chars
-      warnMember(message.member);
-      message.delete().catch(console.error);
-    }
+
 
     if (message.content.startsWith(config.prefixu)) { //User commands
       var commandandargs = message.content.substring(2).split(" "); //Split the command and args
@@ -239,6 +236,10 @@
     if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find('name', 'Généraux'))) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
+        message.delete().catch(console.error);
+      }else if (message.content.length >= 1000) { //Degager les messages de 1000+ chars
+        warnMember(message.member);
+        message.reply("Pavé césar, ceux qui ne vont pas lire te saluent! (warn)");
         message.delete().catch(console.error);
       }else if (message.attachments.size ===0 && SM.isSpam(message.content)) {
         warnMember(message.member);
