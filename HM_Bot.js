@@ -44,7 +44,7 @@
 
 
   function warnMember(member) { //warn a member and mute him if necessary
-    console.log(`warning user ${member.username}`);
+    console.log(`warning user ${member.nickname}`);
     if (!warnedUsers.has(member.toString())) { // is he already warned?
       warnedUsers.set(member.toString(), 1); // if not, add him to the list of warned
     } else {
@@ -88,7 +88,7 @@
   //Runs on bot start
   bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
-    bot.user.setActivity('Etre en beta fermée');
+    bot.user.setActivity('Etre en beta');
     restoreWarnedUsers();
     restoreProtectedNames();
   });
@@ -234,6 +234,10 @@
       tallyArray.push(tally[prop]);
     }
     var highestcount = Math.max(...tallyArray);
+    
+    console.log("ignored: " +ignoredChannels.includes(message.channel.id));
+    console.log("channel id : " + message.channel.id);
+    
     if (!(ignoredChannels.includes(message.channel.id) || message.member.roles.find('name', 'Généraux'))) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
