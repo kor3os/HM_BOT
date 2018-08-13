@@ -194,11 +194,11 @@
           }
         }else if(command == "setprotectedname"){
           if(commandandargs.length == 3){
-            protectednames.set(commandandargs[1].toLowerCase(), commandandargs[2].slice(2, -1));
+            protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(2, -1));
             saveProtectedNames();
             message.reply(":ok_hand:");
           }else{
-            message.reply("usage: setprotectedname <name> <@user>");
+            message.reply("usage: setprotectedname <@user> <name>");
           }
         }else if(command == "setgame"){
           bot.user.setActivity(message.content.substring(11));
@@ -209,7 +209,7 @@
 -warn <@user> [reason] : ajoute un warning a user. reason est inutile et sert juste a faire peur.\n\
 -spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)\n\
 -slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.\n\
--setprotectedname <name> <@user> : reserve un nom pour @user. plusieurs noms par user possibles.\n\
+-setprotectedname <@user> <name> : reserve un nom pour user. plusieurs noms par user possibles.\n\
 -setgame <game> : change la phrase de profil du bot.");
         }
 
