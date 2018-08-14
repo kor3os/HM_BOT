@@ -191,7 +191,7 @@
           }
         }else if(command == "setprotectedname"){
           if(commandandargs[1].startsWith("<@")){
-            protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(3, -1));
+            protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(2, -1));
             saveProtectedNames();
             message.reply(":ok_hand:");
           }else{
