@@ -10,10 +10,10 @@ module.exports = {
       if (this.messages.get(message) >= 4) {
         return true; // TODO: maybe put back the messages in the queue? not sure.
       } else {
-        if(messages.has(message)){
+        if(this.messages.has(message)){
           this.messages.set(message, this.messages.get(message) +1);
         }else{
-          messages.set(message, 1);
+          this.messages.set(message, 1);
           setTimeout(pop, this.t, this.messages, message);
         }
         return false;
