@@ -29,7 +29,8 @@
                         "vip",
                         "modlogs",
                         "couchoux",
-                        "spam_admin_issou"];
+                        "spam_admin_issou",
+                        "spam_hell_cancer"];
   console.log(ignoredChannels.getClass);
 
   function saveWarnedUsers() {
@@ -51,7 +52,7 @@
     } else {
       warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
       if (warnedUsers.get(member.toString()) >= 3) {
-        member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error); // id of @Muted on HM.
+        member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error);
         warnedUsers.delete(member.toString());
       }
     }
@@ -75,7 +76,6 @@
   };
 
 
-  var prtotectednames;
   function saveProtectedNames(){
     fs.writeFileSync('protectednames.json', JSON.stringify(Array.from(protectednames.entries())), 'utf-8');
   }
@@ -83,6 +83,11 @@
   function restoreProtectedNames(){
     var text = fs.readFileSync('protectednames.json');
     protectednames = new Map(JSON.parse(text));
+  }
+  
+  function reload(){
+    restoreProtectedNames();
+    restoreWarnedUsers();
   }
 
 
@@ -210,6 +215,9 @@
 -setgame <game> : change la phrase de profil du bot.");
         }
 
+      }else if(message.content === "hm reload" && message.author.id == "107448106596986880"){
+        reload();
+        message.reply("success.");
       }
       
 
@@ -245,7 +253,7 @@
         warnMember(message.member);
         message.reply("on se calme.(warn)");
         message.delete().catch(console.error);
-      }else if((highestcount+1)/(message.content.length+2) > 0.75){
+      }else if( message.content.lenght >= 10 &&(highestcount+1)/(message.content.length+2) > 0.75){
         warnMember(message.member);
         message.reply("stop spam, merci.(warn)");
         message.delete().catch(console.error);
