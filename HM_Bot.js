@@ -211,12 +211,8 @@
           bot.user.setActivity(message.content.substring(11));
           message.reply("game set to " + message.content.substring(11));
         }else if (command == "maxwarnings") {
-          if (commandandargs.length != 2 && isNumeric(commandandargs[1]) ) {
             maxwarns = commandandargs[1];
             message.reply(":ok_hand:");
-          } else {
-            message.reply("usage: maxwarnings <amount>");
-          }
         }
         else if(command == "help"){
           message.reply("voici mes commandes moderateur:\n\
