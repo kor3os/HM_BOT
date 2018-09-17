@@ -23,7 +23,8 @@
   const fs = require('fs');
   const util = require('util');
   var warnedUsers;
-  
+  var maxwarns = 3; //TODO: save the things
+
   var ignoredChannels = ["les-bg-pas-pd",
                         "dev",
                         "vip",
@@ -51,7 +52,7 @@
       warnedUsers.set(member.toString(), 1); // if not, add him to the list of warned
     } else {
       warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
-      if (warnedUsers.get(member.toString()) >= 3) {
+      if (warnedUsers.get(member.toString()) >= maxwarns) {
         member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error);
         warnedUsers.delete(member.toString());
       }
@@ -79,15 +80,19 @@
   function saveProtectedNames(){
     fs.writeFileSync('protectednames.json', JSON.stringify(Array.from(protectednames.entries())), 'utf-8');
   }
-  
+
   function restoreProtectedNames(){
     var text = fs.readFileSync('protectednames.json');
     protectednames = new Map(JSON.parse(text));
   }
-  
+
   function reload(){
     restoreProtectedNames();
     restoreWarnedUsers();
+  }
+
+  function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
   }
 
 
@@ -138,7 +143,7 @@
             }else{
               cleanUpColorRoles(message.guild);
             }
-          
+
           } else {  //Le mec a le droit mais il sait pas faire
             message.reply("Example: `color #FF4200`");
           }
@@ -205,6 +210,13 @@
         }else if(command == "setgame"){
           bot.user.setActivity(message.content.substring(11));
           message.reply("game set to " + message.content.substring(11));
+        }else if (command == "maxwarnings") {
+          if (commandandargs.length != 2 && isNumeric(commandandargs[1]) ) {
+            maxwarns = commandandargs[1];
+            message.reply(":ok_hand:");
+          } else {
+            message.reply("usage: maxwarnings <amount>");
+          }
         }
         else if(command == "help"){
           message.reply("voici mes commandes moderateur:\n\
@@ -212,14 +224,15 @@
 -spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)\n\
 -slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.\n\
 -setprotectedname <@user> <name> : reserve un nom pour user. plusieurs noms par user possibles.\n\
--setgame <game> : change la phrase de profil du bot.");
+-setgame <game> : change la phrase de profil du bot.\n\
+-maxwarnings <number> : les utilisateurs seront mute apres number warns (default 3)");
         }
 
       }else if(message.content === "hm reload" && message.author.id == "107448106596986880"){
         reload();
         message.reply("success.");
       }
-      
+
 
     }
 
@@ -232,7 +245,7 @@
         message.delete().catch(console.error);
       }
     }
-    
+
     var tallyArray = [];
     var tally = message.content.charTally();
     for(var prop in tally){
@@ -240,7 +253,7 @@
       tallyArray.push(tally[prop]);
     }
     var highestcount = Math.max(...tallyArray);
-    
+
     if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find('name', 'Généraux'))) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
@@ -271,7 +284,7 @@
           newMember.setNickname("LE FAUX "+ newMember.nickname, "Protected name.").catch(console.error);
         }
       }
-      
+
     }
   });
 
