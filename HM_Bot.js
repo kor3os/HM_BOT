@@ -119,7 +119,9 @@
       var commandandargs = message.content.substring(2).split(" "); //Split the command and args
       var command = commandandargs[0];  //Alias to go faster
       if (command == "color") {
-        if (message.member.roles.find('name', 'Donateur')) {  //Si on a le role donateur
+        if (message.member.roles.find((role) => {
+          return role.name == 'Donateur';
+        })) {  //Si on a le role donateur
           if (commandandargs.length == 2) { //I want exactly 1 argument
             var role = message.member.roles.find(val => val.name.includes("dncolor"));  //Find the user's color role if there is one
             if (role) {
@@ -137,7 +139,9 @@
                   name: 'dncolor' + commandandargs[1],
                   color: commandandargs[1],
                   hoist: false,
-                  position: message.member.roles.find('name', 'Donateur').position + 1, //1 au dessus du role donateur
+                  position: message.member.roles.find((role) => {
+                    return role.name == 'Donateur';
+                  }).position + 1, //1 au dessus du role donateur
                   mentionable: false
                 })
                 .then((role) => {
@@ -302,7 +306,9 @@
   function giveDefaultRole(member) {
     member.addRole(member.guild.roles.find((role) => {
       return role.name == "secte nsfw";
-    }), "10 mins");
+    }), "10 mins").catch((err) => {
+      console.log("tried giving an already given role, git gud");;
+    });
   }
 
   bot.on('guildMemberAdd', (member)=>{
