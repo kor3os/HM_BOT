@@ -53,7 +53,9 @@
     } else {
       warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
       if (warnedUsers.get(member.toString()) >= maxwarns) {
-        member.addRole(member.guild.roles.find('name', 'Muted'), "3rd warning").catch(console.error);
+        member.addRole(member.guild.roles.find((role) => {
+          return role.name == 'Muted';
+        }), "3rd warning").catch(console.error);
         warnedUsers.delete(member.toString());
       }
     }
