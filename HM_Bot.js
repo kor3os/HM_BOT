@@ -91,9 +91,11 @@
     restoreWarnedUsers();
   }
 
-  function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
+  function dlmbump() {
+    bot.chanels.get("311496070074990593").send("dlm!bump");
+    setTimeout(dlmbump, 21600000 + (Math.random() * (900000 - 180000) + 180000));
   }
+
 
 
   //Runs on bot start
@@ -102,6 +104,7 @@
     bot.user.setActivity('twitter.com/hentaimoutarde');
     restoreWarnedUsers();
     restoreProtectedNames();
+    dlmbump();
   });
 
 
