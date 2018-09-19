@@ -92,7 +92,7 @@
   }
 
   function dlmbump() {
-    bot.chanels.get("311496070074990593").send("dlm!bump");
+    bot.channels.get("311496070074990593").send("dlm!bump");
     setTimeout(dlmbump, 21600000 + (Math.random() * (900000 - 180000) + 180000));
   }
 
@@ -163,7 +163,11 @@
 
 
     if (message.content.startsWith(config.prefixm)) { //Mod commands
-      if(message.member.roles.find("name", "Généraux") || message.member.roles.find("name", "Salade de fruits")){
+      if(message.member.roles.find((role) => {
+        return role.name == 'Généraux';
+      }) || message.member.roles.find((role) => {
+        return role.name == 'Salade de fruits';
+      })){
         var commandandargs = message.content.substring(3).split(" "); //Split the command and args
         var command = commandandargs[0];  //Alias to go faster
         if (command === "warn") { //FIXME
@@ -240,7 +244,11 @@
 
     //Deleting "@everyone" made by random people
     if (message.content.includes("@everyone")) {  //Si le message contient un everyone
-      if (!(message.member.roles.find('name', 'Salade de fruits') || message.member.roles.find('name', 'Généraux'))) {
+      if (!(message.member.roles.find((role) => {
+        return role.name == 'Salade de fruits';
+      }) || message.member.roles.find((role) => {
+        return role.name == 'Généraux';
+      }))) {
         warnMember(message.member);
         message.reply("tu pense faire quoi, au juste? (warn)");
         message.delete().catch(console.error);
@@ -255,7 +263,9 @@
     }
     var highestcount = Math.max(...tallyArray);
 
-    if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find('name', 'Généraux'))) {
+    if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find((role) => {
+      return role.name == 'Généraux';
+    }))) {
       if (slowmode.isPrevented(message)){
         message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.").catch();
         message.delete().catch(console.error);
@@ -287,6 +297,16 @@
       }
 
     }
+  });
+
+  function giveDefaultRole(member) {
+    member.addRole(member.guild.roles.find((role) => {
+      return role.name == "secte nsfw";
+    }), "10 mins");
+  }
+
+  bot.on('guildMemberAdd', (member)=>{
+    setTimeout(giveDefaultRole, 600000);
   });
 
 
