@@ -314,7 +314,7 @@
   }
 
   bot.on('guildMemberAdd', (member)=>{
-    setTimeout(giveDefaultRole, 20000, member);
+    setTimeout(giveDefaultRole, 600000, member);
   });
 
 
