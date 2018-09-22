@@ -147,8 +147,8 @@
                   mentionable: false
                 })
                 .then((role) => {
-                  message.member.addRole(role).then(promise => cleanUpColorRoles(message.guild));
-                });
+                  message.member.addRole(role).then(promise => cleanUpColorRoles(message.guild)).catch(console.error);
+                }).catch(console.error);
             }else{
               cleanUpColorRoles(message.guild);
             }
@@ -314,7 +314,7 @@
   }
 
   bot.on('guildMemberAdd', (member)=>{
-    setTimeout(giveDefaultRole, 600000);
+    setTimeout(giveDefaultRole, 20000, member);
   });
 
 
