@@ -4,6 +4,10 @@
   //If you plan on stealing this, please kindly go duck yourself.
 
   //Have any questions ? Go ask Koreos#8912 over at HM !
+  const secrets = require("./secrets.json");
+  let WHL = require('./webHookListener.js')
+
+  WHL.init(7227, secrets.webHookSecret);
 
   const Discord = require("discord.js");
 
@@ -12,7 +16,6 @@
 
   //Contains bot prefix
   const config = require("./config.json");
-  const token = require("./token.json");
   const spamManager = require("./spammanager.js");
   var SM = new spamManager.Manager(30000);
 
@@ -318,4 +321,4 @@
   });
 
 
-  bot.login(token.token); //Yes.
+  bot.login(secrets.token); //Yes.
