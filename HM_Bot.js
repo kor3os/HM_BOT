@@ -251,9 +251,13 @@
 
       }else if(message.content === "hm reload" && message.author.id == "107448106596986880"){
         reload();
-        message.reply("success.");
+        message.reply("Success.");
       }else if (message.content.startsWith("hm simon ") && message.author.id == "107448106596986880") {
         message.channel.send(message.content.substring(9));
+      }
+      else if (message.content.startsWith("hm update") && message.author.id == "107448106596986880") {
+        message.reply("Updating...")
+        WHL.update();
       }
 
 
