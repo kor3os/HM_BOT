@@ -9,7 +9,7 @@ module.exports = {
             req.on('data', function (chunk) {
                 let sig = "sha1=" + crypto.createHmac('sha1', secret).update(chunk.toString()).digest('hex');
                 if (req.headers['x-hub-signature'] == sig) {
-                    this.update()
+                    module.exports.update()
                 }
             });
         }).listen(port);
@@ -17,8 +17,8 @@ module.exports = {
 
     update : function() {
         exec('cd ' + this.repo + ' && git pull');
-        if (this.callback != null) {
-            this.callback();
+        if (module.exports.callback != null) {
+            module.exports.callback();
         }
     },
 
