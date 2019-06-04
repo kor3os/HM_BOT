@@ -4,6 +4,11 @@
   //If you plan on stealing this, please kindly go duck yourself.
 
   //Have any questions ? Go ask Koreos#8912 over at HM !
+
+
+
+
+  //launch the webhook listener
   const secrets = require("./secrets.json");
   let WHL = require('./webHookListener.js');
 
