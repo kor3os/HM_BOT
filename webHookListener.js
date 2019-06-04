@@ -17,8 +17,12 @@ module.exports = {
 
     update : function() {
         exec('cd ' + this.repo + ' && git pull');
+        if (this.callback != null) {
+            this.callback();
+        }
     },
 
+    callback : null,
     repo: "/home/themoonisacheese/HM_BOT"
 
 }

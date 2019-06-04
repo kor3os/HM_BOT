@@ -5,7 +5,16 @@
 
   //Have any questions ? Go ask Koreos#8912 over at HM !
   const secrets = require("./secrets.json");
-  let WHL = require('./webHookListener.js')
+  let WHL = require('./webHookListener.js');
+
+  WHL.callback = function() {
+    try {
+      bot.channels.get("389036589160071179").send("I have just updated!")
+    } catch (error) {
+      console.warn("Unable to alert on discord, just updated.")
+    }
+    
+  }
 
   WHL.init(7227, secrets.webHookSecret);
 
