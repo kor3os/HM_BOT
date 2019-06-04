@@ -20,6 +20,7 @@ module.exports = {
         if (module.exports.callback != null) {
             module.exports.callback();
         }
+        process.exit(0);
     },
 
     callback : null,
