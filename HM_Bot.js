@@ -11,6 +11,7 @@
     try {
       bot.channels.get("585562661488689193").send("I have just updated!")
     } catch (error) {
+      console.log(error)
       console.warn("Unable to alert on discord, just updated.")
     }
     
