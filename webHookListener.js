@@ -23,6 +23,6 @@ module.exports = {
     },
 
     callback : null,
-    repo: "/home/themoonisacheese/HM_BOT"
+    repo: "/home/themoon/HM_BOT"
 
 }
