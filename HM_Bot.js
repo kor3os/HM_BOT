@@ -9,7 +9,7 @@
 
   WHL.callback = function() {
     try {
-      bot.channels.get("389036589160071179").send("I have just updated!")
+      bot.channels.get("585562661488689193").send("I have just updated!")
     } catch (error) {
       console.warn("Unable to alert on discord, just updated.")
     }
