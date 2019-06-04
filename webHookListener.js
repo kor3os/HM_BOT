@@ -16,7 +16,7 @@ module.exports = {
     },
 
     update : function() {
-        exec('cd ' + this.repo + ' && git pull');
+        exec('cd ' + module.exports.repo + ' && git pull');
         if (module.exports.callback != null) {
             module.exports.callback();
         }
