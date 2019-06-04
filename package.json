@@ -1,0 +1,22 @@
+{
+  "name": "hm_bot",
+  "version": "1.0.0",
+  "description": "A discord bot for Hentai Moutarde",
+  "main": "HM_Bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/themoonisacheese/HM_BOT.git"
+  },
+  "author": "Themoonisacheese, Koreos",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/themoonisacheese/HM_BOT/issues"
+  },
+  "homepage": "https://github.com/themoonisacheese/HM_BOT#readme",
+  "dependencies": {
+    "discord.js": "^11.5.1"
+  }
+}
