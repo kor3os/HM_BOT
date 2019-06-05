@@ -1,9 +1,27 @@
   //Hello !
-  //This bot is being dev'd for the Discord server Hentai Moutarde at https://discord.gg/yYsCw8z
+  //This bot is being dev'd for the Discord server Hentai Moutarde at https://discord.gg/xX33Vkr
   //It is a french Discord, revolving around hentai (and more, soon(tm))
   //If you plan on stealing this, please kindly go duck yourself.
 
   //Have any questions ? Go ask Koreos#8912 over at HM !
+
+
+
+
+  //launch the webhook listener
+  const secrets = require("./secrets.json");
+  let WHL = require('./webHookListener.js');
+
+  WHL.callback = function() {
+    try {
+      bot.channels.get("311496070074990593").send("I have just updated!")
+    } catch (error) {
+      console.warn("Unable to alert on discord, just updated.")
+    }
+    
+  }
+
+  WHL.init(7227, secrets.webHookSecret);
 
   const Discord = require("discord.js");
 
@@ -12,7 +30,6 @@
 
   //Contains bot prefix
   const config = require("./config.json");
-  const token = require("./token.json");
   const spamManager = require("./spammanager.js");
   var SM = new spamManager.Manager(30000);
 
@@ -239,9 +256,13 @@
 
       }else if(message.content === "hm reload" && message.author.id == "107448106596986880"){
         reload();
-        message.reply("success.");
+        message.reply("Success.");
       }else if (message.content.startsWith("hm simon ") && message.author.id == "107448106596986880") {
         message.channel.send(message.content.substring(9));
+      }
+      else if (message.content.startsWith("hm update") && message.author.id == "107448106596986880") {
+        message.reply("Updating...")
+        WHL.update();
       }
 
 
@@ -318,4 +339,4 @@
   });
 
 
-  bot.login(token.token); //Yes.
+  bot.login(secrets.token); //Yes.
