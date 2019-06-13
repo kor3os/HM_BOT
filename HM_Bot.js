@@ -5,25 +5,24 @@
 
 // Have any questions ? Go ask Koreos#8912 over at HM !
 
+const fs = require("fs");
 
+// Launch the webhook listener
+const secrets = require("./secrets.json");
 
+let WHL = require('./webHookListener.js');
 
-  //launch the webhook listener
-  const secrets = require("./secrets.json");
-
-  let WHL = require('./webHookListener.js');
-
-  WHL.callback = function() {
+WHL.callback = function () {
     try {
-      bot.channels.get("311496070074990593").send("I have just updated!")
+        bot.channels.get("311496070074990593").send("I have just updated!")
     } catch (error) {
-      console.warn("Unable to alert on discord, just updated.")
+        console.warn("Unable to alert on discord, just updated.")
     }
-  }
+};
 
-  WHL.init(7227, secrets.webHookSecret);
+WHL.init(7227, secrets.webHookSecret);
 
-  const Discord = require("discord.js");
+const Discord = require("discord.js");
 
 // Bot client.
 const bot = new Discord.Client();
