@@ -10,13 +10,13 @@ const fs = require("fs");
 // Launch the webhook listener
 const secrets = require("./secrets.json");
 
-let WHL = require('./webHookListener.js');
+const WHL = require("./webHookListener.js");
 
-WHL.callback = function () {
+WHL.callback = function() {
     try {
-        bot.channels.get("311496070074990593").send("I have just updated!")
+        bot.channels.get("311496070074990593").send("I have just updated!");
     } catch (error) {
-        console.warn("Unable to alert on discord, just updated.")
+        console.warn("Unable to alert on discord, just updated.");
     }
 };
 
@@ -28,7 +28,7 @@ const Discord = require("discord.js");
 const bot = new Discord.Client();
 
 // Bot configuration
-const config = require("./config.json");
+let config = require("./config.json");
 
 const devs = ["226452158936121354", "107448106596986880"];
 const ignoredChannels = [
@@ -41,6 +41,10 @@ const ignoredChannels = [
     "spam_hell_cancer"
 ];
 
+const sec = 1000,
+    min = 60 * sec,
+    hour = 60 * min;
+
 // Bot managers
 const spamManager = require("./spammanager.js");
 let SM = new spamManager.Manager(30000);
@@ -49,34 +53,33 @@ const slowModeManager = require("./slowmodemanager.js");
 let slowMode = new slowModeManager.Manager();
 
 // Warned users
-let warnedUsers;
 let maxwarns = 3; // TODO: save the things
 
-function saveWarnedUsers() {
-    fs.writeFileSync("warns.json", JSON.stringify(Array.from(warnedUsers.entries())), "utf-8");
-    console.log(`saved ${warnedUsers.size} warn entries`);
+function saveConfig() {
+    fs.writeFileSync("config.json", JSON.stringify(config, null, 4), "utf-8");
+    console.log(`saved config`);
 }
 
-function restoreWarnedUsers() {
+function loadConfig() {
     let text = fs.readFileSync("warns.json");
-    warnedUsers = new Map(JSON.parse(text.toString()));
-    console.log(`restored ${warnedUsers.size} warn entries`);
+    config = JSON.parse(text.toString());
+    console.log(`loaded config`);
 }
 
 function warnMember(member) { // Warn a member and mute him if necessary
     console.log(`warning user ${member.user.username}`);
     
-    if (!warnedUsers.has(member.toString())) { // Is he already warned?
-        warnedUsers.set(member.toString(), 1); // If not, add him to the list of warned
+    if (!config.warns[member.toString()]) { // Is he already warned?
+        config.warns[member.toString()] = 1; // If not, add him to the list of warned
     } else {
-        warnedUsers.set(member.toString(), warnedUsers.get(member.toString()) + 1);
-        if (warnedUsers.get(member.toString()) >= maxwarns) {
+        config.warns[member.toString()] += 1;
+        if (config.warns[member.toString()] >= maxwarns) {
             member.addRole(member.guild.roles.find(role => role.name === "Muted"), "3rd warning")
                 .catch(console.error);
-            warnedUsers.delete(member.toString());
+            delete config.warns[member.toString()];
         }
     }
-    saveWarnedUsers();
+    saveConfig();
 }
 
 function cleanUpColorRoles(guild) {
@@ -91,29 +94,12 @@ String.prototype.charTally = function charTally() { // Count the number of occur
     }, {});
 };
 
-// Protected names
-let protectednames;
-
-function saveProtectedNames() {
-    fs.writeFileSync("protectednames.json", JSON.stringify(Array.from(protectednames.entries())), "utf-8");
-}
-
-function restoreProtectedNames() {
-    let text = fs.readFileSync("protectednames.json");
-    protectednames = new Map(JSON.parse(text.toString()));
-}
-
-function reload() {
-    restoreProtectedNames();
-    restoreWarnedUsers();
-}
-
 let bumpChannel;
 
 function dlmbump() {
     if (bumpChannel) {
         bumpChannel.send("dlm!bump");
-        setTimeout(dlmbump, 21600000 + (Math.random() * (900000 - 180000) + 180000));
+        setTimeout(dlmbump, (9 * hour) + (Math.random() * (5 * min)));
     }
 }
 
@@ -122,8 +108,7 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
     
-    restoreWarnedUsers();
-    restoreProtectedNames();
+    loadConfig();
     
     bumpChannel = bot.channels.get("311496070074990593");
     dlmbump();
@@ -212,11 +197,11 @@ bot.on("message", (message) => {
                         
                     } else {
                         if (commandandargs[1].endsWith("h"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * 1000 * 60 * 60);
+                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * hour);
                         else if (commandandargs[1].endsWith("m"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * 1000 * 60);
+                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * min);
                         else if (commandandargs[1].endsWith("s"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * 1000);
+                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * sec);
                         else if (commandandargs[1].endsWith("ms"))
                             slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -2));
                         else
@@ -230,8 +215,8 @@ bot.on("message", (message) => {
                 
             } else if (command === "setprotectedname") {
                 if (commandandargs[1].startsWith("<@")) {
-                    protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(2, -1));
-                    saveProtectedNames();
+                    config.protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(2, -1));
+                    saveConfig();
                     message.reply(":ok_hand:");
                 } else {
                     message.reply("usage: setprotectedname <@user> <name>");
@@ -256,16 +241,25 @@ bot.on("message", (message) => {
 -maxwarnings <number> : les utilisateurs seront mute apres number warns (default 3)`);
             }
             
-        } else if (message.content === "hm reload" && devs.includes(message.author.id)) {
-            reload();
-            message.reply("Success.");
-            
-        } else if (message.content.startsWith("hm simon ") && devs.includes(message.author.id)) {
-            message.channel.send(message.content.substring(9));
-        
-        } else if (message.content.startsWith("hm update") && devs.includes(message.author.id)) {
-            message.reply("Updating...");
-            WHL.update();
+        } else if (devs.includes(message.author.id)) {
+            if (message.content === "hm reload") {
+                loadConfig();
+                message.reply("Success.");
+                
+            } else if (message.content.startsWith("hm autogoulag ")) {
+                config.autogoulag = message.content.substring(14);
+                saveConfig();
+                
+            } else if (message.content.startsWith("hm config")) {
+                message.author.send("```" + JSON.stringify(config, null, 4) + "```");
+                
+            } else if (message.content.startsWith("hm simon ")) {
+                message.channel.send(message.content.substring(9));
+                
+            } else if (message.content.startsWith("hm update")) {
+                message.reply("Updating...");
+                WHL.update();
+            }
         }
     }
     
@@ -319,15 +313,23 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
     }
 });
 
-/*
 function giveDefaultRole(member) {
     member.addRole(member.guild.roles.find(role => role.name === "secte nsfw"), "10 mins")
         .catch(() => console.log("tried giving an already given role, git gud"));
 }
 
-bot.on("guildMemberAdd", (member) => {
-    setTimeout(giveDefaultRole, 600000, member);
+bot.on("guildMemberAdd", member => {
+    //setTimeout(giveDefaultRole, 600000, member);
+    
+    if (member.user.username.match(new RegExp(config.autogoulag))) {
+        member.addRole(member.guild.roles.find(role => role.name === "GOULAG"));
+        member.send(`Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.
+        Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
+        
+        *You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
+        If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
+    }
 });
-*/
+
 
 bot.login(secrets.token); //Yes.
