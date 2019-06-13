@@ -61,7 +61,7 @@ function saveConfig() {
 }
 
 function loadConfig() {
-    let text = fs.readFileSync("warns.json");
+    let text = fs.readFileSync("config.json");
     config = JSON.parse(text.toString());
     console.log(`loaded config`);
 }
