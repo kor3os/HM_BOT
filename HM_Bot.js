@@ -321,13 +321,15 @@ function giveDefaultRole(member) {
 bot.on("guildMemberAdd", member => {
     //setTimeout(giveDefaultRole, 600000, member);
     
+    console.log(member.user.username, new RegExp(config.autogoulag));
+    
     if (member.user.username.match(new RegExp(config.autogoulag))) {
         member.addRole(member.guild.roles.find(role => role.name === "GOULAG"));
         member.send(`Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.
-        Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
-        
-        *You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
-        If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
+Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
+
+*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
+If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
     }
 });
 
