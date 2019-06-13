@@ -1,19 +1,35 @@
 // Hello !
-// This bot is being dev'd for the Discord server Hentai Moutarde at https:// Discord.gg/yYsCw8z
+// This bot is being dev'd for the Discord server Hentai Moutarde at https://discord.gg/xX33Vkr
 // It is a french Discord, revolving around hentai (and more, soon(tm))
 // If you plan on stealing this, please kindly go duck yourself.
 
 // Have any questions ? Go ask Koreos#8912 over at HM !
 
-const fs = require("fs");
-const Discord = require("discord.js");
+
+
+
+  //launch the webhook listener
+  const secrets = require("./secrets.json");
+
+  let WHL = require('./webHookListener.js');
+
+  WHL.callback = function() {
+    try {
+      bot.channels.get("311496070074990593").send("I have just updated!")
+    } catch (error) {
+      console.warn("Unable to alert on discord, just updated.")
+    }
+  }
+
+  WHL.init(7227, secrets.webHookSecret);
+
+  const Discord = require("discord.js");
 
 // Bot client.
 const bot = new Discord.Client();
 
 // Bot configuration
 const config = require("./config.json");
-const token = require("./token.json");
 
 const devs = ["226452158936121354", "107448106596986880"];
 const ignoredChannels = [
@@ -113,7 +129,6 @@ bot.once("ready", () => {
     bumpChannel = bot.channels.get("311496070074990593");
     dlmbump();
 });
-
 
 // Message handling
 bot.on("message", (message) => {
@@ -248,6 +263,10 @@ bot.on("message", (message) => {
             
         } else if (message.content.startsWith("hm simon ") && devs.includes(message.author.id)) {
             message.channel.send(message.content.substring(9));
+        
+        } else if (message.content.startsWith("hm update") && devs.includes(message.author.id)) {
+            message.reply("Updating...");
+            WHL.update();
         }
     }
     
@@ -312,4 +331,4 @@ bot.on("guildMemberAdd", (member) => {
 });
 */
 
-bot.login(token.token); // Yes.
+bot.login(secrets.token); //Yes.
