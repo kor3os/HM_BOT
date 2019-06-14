@@ -27,7 +27,7 @@ const Discord = require("discord.js");
 const bot = new Discord.Client();
 
 // Bot configuration
-let config;
+let config, msgCount;
 let hentaiMoutarde;
 
 // Useful constants
@@ -44,30 +44,37 @@ let slowMode = new slowModeManager.Manager();
 
 // CONFIG
 
-function saveConfig() {
-    fs.writeFileSync("config.json", JSON.stringify(config, null, 4), "utf-8");
-    console.log(`saved config`);
+function loadJson(...names) {
+    for (let name of names) {
+        global[name] = JSON.parse(fs.readFileSync(name + ".json").toString());
+    }
 }
 
-function loadConfig() {
-    let text = fs.readFileSync("config.json");
-    config = JSON.parse(text.toString());
-    console.log(`loaded config`);
+function saveJson(name, beautify = false) {
+    let content = (beautify ?
+        JSON.stringify(config, null, 4) :
+        JSON.stringify(config));
+    fs.writeFileSync(name + ".json", content, "utf-8");
 }
 
-// STRING UTILITY
+// UTILITY
 
-String.prototype.charTally = function charTally() { // Count the number of occurences of each character in the string.
+String.prototype.charTally = function charTally() { // Count the number of occurrences of each character in the string.
     return this.split("").reduce((acc, char) => {
         acc[char] = (acc[char] || 0) + 1;
         return acc;
     }, {});
 };
 
+function today() { // Returns today's date
+    let d = new Date();
+    return d.getDay() + "-" + d.getMonth() + "-" + d.getFullYear();
+}
+
 // ROLES
 
 // Test if member has one of the roles passed
-const hasRole = (member, ...roles) => member.roles.find(role => roles.includes(role));
+const hasRole = (member, ...roles) => member.roles.find(role => roles.includes(role.name));
 
 // Get a role from a guild
 const getRole = (name) => hentaiMoutarde.roles.find(val => val.name === name);
@@ -90,7 +97,41 @@ function warnMember(member) { // Warn a member and mute him if necessary
             delete config.warns[member.toString()];
         }
     }
-    saveConfig();
+    saveJson("config", true);
+}
+
+// Message count (Guide frénétique)
+function updateMsgCount(member) {
+    // Update date and add/remove day if new day
+    if (today() !== msgCount.date) {
+        msgCount.date = today();
+        for (let user of msgCount.users) {
+            msgCount.users[user].pop();
+            msgCount.users[user].unshift(0);
+
+            // No messages in a month, delete entry
+            if (msgCount.users[user].reduce((n, a) => a + n, 0) === 0) {
+                delete msgCount.users[user];
+            }
+        }
+    }
+
+    // If user doesn't have an entry
+    if (!msgCount.users[member.toString()])
+        msgCount.users[member.toString()] = new Array(config.daysMsgCount).fill(0);
+
+    // Add message to count and save
+    msgCount.users[member.toString()][0]++;
+
+    saveJson("msgCount");
+
+    // Remove/add role with total count
+    let totalCount = msgCount.users[member.toString()].reduce((n, a) => a + n, 0);
+
+    if (totalCount >= config.minMsgCount && !hasRole(member, "Guide frénétique"))
+        member.addRole(getRole("Guide frénétique"));
+    else if (totalCount < config.minMsgCount && hasRole(member, "Guide frénétique"))
+        member.removeRole(getRole("Guide frénétique"));
 }
 
 let bumpChannel;
@@ -107,7 +148,7 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
 
-    loadConfig();
+    loadJson("config", "msgCount");
 
     hentaiMoutarde = bot.guilds.get(config.server);
     bumpChannel = bot.channels.get("311496070074990593");
@@ -122,6 +163,8 @@ bot.on("message", message => {
     if (author.bot || channel.type !== "text") return;
 
     const ok = () => message.react("👌");
+
+    updateMsgCount(member);
 
     // User commands
     if (content.startsWith(config.prefixU)) {
@@ -221,7 +264,7 @@ bot.on("message", message => {
             } else if (command === "setprotectedname") {
                 if (commandAndArgs[1].startsWith("<@")) {
                     config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
-                    saveConfig();
+                    saveJson("config", true);
                     ok();
                 } else {
                     message.reply("usage: setprotectedname <@user> <name>");
@@ -233,7 +276,7 @@ bot.on("message", message => {
 
             } else if (command === "maxwarns") {
                 config.maxWarns = commandAndArgs[1];
-                saveConfig();
+                saveJson("config", true);
                 ok();
 
             } else if (command === "help") {
@@ -249,12 +292,12 @@ bot.on("message", message => {
 
         } else if (config.devs.includes(author.id)) {
             if (content === "hm reload") {
-                loadConfig();
+                loadJson("config");
                 message.reply("Reloaded config successfully.");
 
             } else if (content.startsWith("hm autogoulag ")) {
                 config.autoGoulag = content.substring(14);
-                saveConfig();
+                saveJson("config", true);
                 ok();
 
             } else if (content === "hm config") {
