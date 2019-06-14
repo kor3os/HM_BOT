@@ -12,7 +12,7 @@ const secrets = require("./secrets.json");
 
 const WHL = require("./webHookListener.js");
 
-WHL.callback = function() {
+WHL.callback = function () {
     try {
         bot.channels.get("311496070074990593").send("I have just updated!");
     } catch (error) {
@@ -22,25 +22,15 @@ WHL.callback = function() {
 
 WHL.init(7227, secrets.webHookSecret);
 
+// Discord library and client
 const Discord = require("discord.js");
-
-// Bot client.
 const bot = new Discord.Client();
 
 // Bot configuration
-let config = require("./config.json");
+let config;
+let hentaiMoutarde;
 
-const devs = ["226452158936121354", "107448106596986880"];
-const ignoredChannels = [
-    "les-bg-pas-pd",
-    "dev",
-    "vip",
-    "modlogs",
-    "couchoux",
-    "spam_admin_issou",
-    "spam_hell_cancer"
-];
-
+// Useful constants
 const sec = 1000,
     min = 60 * sec,
     hour = 60 * min;
@@ -52,8 +42,7 @@ let SM = new spamManager.Manager(30000);
 const slowModeManager = require("./slowmodemanager.js");
 let slowMode = new slowModeManager.Manager();
 
-// Warned users
-let maxwarns = 3; // TODO: save the things
+// CONFIG
 
 function saveConfig() {
     fs.writeFileSync("config.json", JSON.stringify(config, null, 4), "utf-8");
@@ -66,26 +55,7 @@ function loadConfig() {
     console.log(`loaded config`);
 }
 
-function warnMember(member) { // Warn a member and mute him if necessary
-    console.log(`warning user ${member.user.username}`);
-    
-    if (!config.warns[member.toString()]) { // Is he already warned?
-        config.warns[member.toString()] = 1; // If not, add him to the list of warned
-    } else {
-        config.warns[member.toString()] += 1;
-        if (config.warns[member.toString()] >= maxwarns) {
-            member.addRole(member.guild.roles.find(role => role.name === "Muted"), "3rd warning")
-                .catch(console.error);
-            delete config.warns[member.toString()];
-        }
-    }
-    saveConfig();
-}
-
-function cleanUpColorRoles(guild) {
-    guild.roles.filter(role => role.name.includes("dncolor") && role.members.size === 0)
-        .forEach(role => role.delete());
-}
+// STRING UTILITY
 
 String.prototype.charTally = function charTally() { // Count the number of occurences of each character in the string.
     return this.split("").reduce((acc, char) => {
@@ -94,12 +64,41 @@ String.prototype.charTally = function charTally() { // Count the number of occur
     }, {});
 };
 
+// ROLES
+
+// Test if member has one of the roles passed
+const hasRole = (member, ...roles) => member.roles.find(role => roles.includes(role));
+
+// Get a role from a guild
+const getRole = (name) => hentaiMoutarde.roles.find(val => val.name === name);
+
+function cleanUpColorRoles() {
+    hentaiMoutarde.roles.filter(role => role.name.includes("dncolor") && role.members.size === 0)
+        .forEach(role => role.delete());
+}
+
+function warnMember(member) { // Warn a member and mute him if necessary
+    console.log(`warning user ${member.user.username}`);
+
+    if (!config.warns[member.toString()]) { // Is he already warned?
+        config.warns[member.toString()] = 1; // If not, add him to the list of warned
+    } else {
+        config.warns[member.toString()] += 1;
+        if (config.warns[member.toString()] >= config.maxWarns) {
+            member.addRole(getRole("Muted"), "3rd warning")
+                .catch(console.error);
+            delete config.warns[member.toString()];
+        }
+    }
+    saveConfig();
+}
+
 let bumpChannel;
 
-function dlmbump() {
+function dlmBump() {
     if (bumpChannel) {
         bumpChannel.send("dlm!bump");
-        setTimeout(dlmbump, (9 * hour) + (Math.random() * (5 * min)));
+        setTimeout(dlmBump, (9 * hour) + (Math.random() * (5 * min)));
     }
 }
 
@@ -107,53 +106,60 @@ function dlmbump() {
 bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
-    
+
+    hentaiMoutarde = bot.guilds.get(config.server);
+
     loadConfig();
-    
+
     bumpChannel = bot.channels.get("311496070074990593");
-    dlmbump();
+    dlmBump();
 });
 
 // Message handling
-bot.on("message", (message) => {
+bot.on("message", message => {
     // Ignore bot commands and private messages
-    if (message.author.bot || message.channel.type !== "text") return;
-    
+    const {author, member, channel, content} = message;
+
+    if (author.bot || channel.type !== "text") return;
+
+    const ok = () => message.react("👌");
+
     // User commands
-    if (message.content.startsWith(config.prefixu)) {
-        let commandandargs = message.content.substring(config.prefixu.length).split(" "); // Split the command and args
-        let command = commandandargs[0];  // Alias to go faster
-        
+    if (content.startsWith(config.prefixU)) {
+        let commandAndArgs = content.substring(config.prefixU.length).split(" "); // Split the command and args
+        let command = commandAndArgs[0];  // Alias to go faster
+
         if (command === "color") {
-            if (message.member.roles.find(role => role.name === "Donateur")) {  // Si on a le role donateur
-                if (commandandargs.length === 2) { // I want exactly 1 argument
-                    let role = message.member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
-                    
+            if (hasRole(member, "Donateur")) {  // Si on a le role donateur
+                if (commandAndArgs.length === 2) { // I want exactly 1 argument
+                    let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
+
                     if (role) {
-                        message.member.removeRole(role)
+                        member.removeRole(role)
                             .catch(console.error);
                     }
-                    
-                    if (commandandargs[1] === "reset") { // Reset is not a color, allow people to just remove it
-                        cleanUpColorRoles(message.guild);
+
+                    if (commandAndArgs[1] === "reset") { // Reset is not a color, allow people to just remove it
+                        cleanUpColorRoles();
                     } else {
-                        role = message.guild.roles.find(val => val.name === "dncolor" + commandandargs[1]);
-                        
+                        role = getRole("dncolor" + commandAndArgs[1]);
+
                         if (role) {
-                            message.member.addRole(role);
+                            member.addRole(role);
                         } else {
-                            message.guild.createRole({
-                                    name: "dncolor" + commandandargs[1],
-                                    color: commandandargs[1],
-                                    hoist: false,
-                                    position: message.member.roles.find(role => role.name === "Donateur").position + 1, // 1 au dessus du role donateur
-                                    mentionable: false
-                                })
-                                .then(role => message.member.addRole(role)
-                                    .then(() => cleanUpColorRoles(message.guild))
+                            hentaiMoutarde.createRole({
+                                name: "dncolor" + commandAndArgs[1],
+                                color: commandAndArgs[1],
+                                hoist: false,
+                                position: hasRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
+                                mentionable: false
+                            })
+                                .then(role => member.addRole(role)
+                                    .then(() => cleanUpColorRoles())
                                     .catch(console.error))
                                 .catch(console.error);
                         }
+                        ok();
                     }
                 } else {  // Le mec a le droit mais il sait pas faire
                     message.reply("Exemple: `color #FF4200`");
@@ -167,69 +173,70 @@ bot.on("message", (message) => {
 \texemple: color #FF4200`);
         }
     }
-    
+
     // Mod commands
-    if (message.content.startsWith(config.prefixm)) {
-        if (message.member.roles.find(role => role.name === "Généraux" || role.name === "Salade de fruits")) {
-            let commandandargs = message.content.substring(config.prefixm.length).split(" "); // Split the command and args
-            let command = commandandargs[0];  // Alias to go faster
-            
+    if (content.startsWith(config.prefixM)) {
+        if (hasRole(member, "Généraux", "Salade de fruits")) {
+            let commandAndArgs = content.substring(config.prefixM.length).split(" "); // Split the command and args
+            let command = commandAndArgs[0];  // Alias to go faster
+
             if (command === "warn") { // FIXME
                 message.mentions.members.forEach(warnMember);
-                message.reply(":ok_hand:");
-                
+                ok();
+
             } else if (command === "spamtimeout") {
                 try {
-                    SM.changeTimeout(commandandargs[1]);
-                    message.reply(":ok_hand:");
+                    SM.changeTimeout(commandAndArgs[1]);
+                    ok();
                 } catch (e) {
                     message.reply("Erreur: " + e);
                 }
-                
+
             } else if (command === "slowmode") {
                 try {
-                    if (commandandargs[1] === "0") {
-                        slowMode.removeSlowMode(message.channel);
-                        message.reply(":ok_hand:");
-                        
-                    } else if (commandandargs[1] === "help") {
+                    if (commandAndArgs[1] === "0") {
+                        slowMode.removeSlowMode(channel);
+                        ok();
+
+                    } else if (commandAndArgs[1] === "help") {
                         message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
-                        
+
                     } else {
-                        if (commandandargs[1].endsWith("h"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * hour);
-                        else if (commandandargs[1].endsWith("m"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * min);
-                        else if (commandandargs[1].endsWith("s"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -1) * sec);
-                        else if (commandandargs[1].endsWith("ms"))
-                            slowMode.addSlowMode(message.channel, commandandargs[1].slice(0, -2));
+                        if (commandAndArgs[1].endsWith("h"))
+                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * hour);
+                        else if (commandAndArgs[1].endsWith("m"))
+                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * min);
+                        else if (commandAndArgs[1].endsWith("s"))
+                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * sec);
+                        else if (commandAndArgs[1].endsWith("ms"))
+                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -2));
                         else
-                            slowMode.addSlowMode(message.channel, commandandargs[1] * 1000);
-                        
-                        message.reply(":ok_hand:");
+                            slowMode.addSlowMode(channel, commandAndArgs[1] * sec);
+
+                        ok();
                     }
                 } catch (e) {
                     message.reply("Erreur: " + e);
                 }
-                
+
             } else if (command === "setprotectedname") {
-                if (commandandargs[1].startsWith("<@")) {
-                    config.protectednames.set(message.content.slice(21 + commandandargs[1].length), commandandargs[1].slice(2, -1));
+                if (commandAndArgs[1].startsWith("<@")) {
+                    config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
                     saveConfig();
-                    message.reply(":ok_hand:");
+                    ok();
                 } else {
                     message.reply("usage: setprotectedname <@user> <name>");
                 }
-                
+
             } else if (command === "setgame") {
-                bot.user.setActivity(message.content.substring(11));
-                message.reply("game set to " + message.content.substring(11));
-                
-            } else if (command === "maxwarnings") {
-                maxwarns = commandandargs[1];
-                message.reply(":ok_hand:");
-                
+                bot.user.setActivity(content.substring(11));
+                message.reply("game set to " + content.substring(11));
+
+            } else if (command === "maxwarns") {
+                config.maxWarns = commandAndArgs[1];
+                saveConfig();
+                ok();
+
             } else if (command === "help") {
                 message.reply(`voici mes commandes moderateur:
 
@@ -240,61 +247,64 @@ bot.on("message", (message) => {
 -setgame <game> : change la phrase de profil du bot.
 -maxwarnings <number> : les utilisateurs seront mute apres number warns (default 3)`);
             }
-            
-        } else if (devs.includes(message.author.id)) {
-            if (message.content === "hm reload") {
+
+        } else if (config.devs.includes(author.id)) {
+            if (content === "hm reload") {
                 loadConfig();
-                message.reply("Success.");
-                
-            } else if (message.content.startsWith("hm autogoulag ")) {
-                config.autogoulag = message.content.substring(14);
+                message.reply("Reloaded config successfully.");
+
+            } else if (content.startsWith("hm autogoulag ")) {
+                config.autoGoulag = content.substring(14);
                 saveConfig();
-                
-            } else if (message.content.startsWith("hm config")) {
-                message.author.send("```" + JSON.stringify(config, null, 4) + "```");
-                
-            } else if (message.content.startsWith("hm simon ")) {
-                message.channel.send(message.content.substring(9));
-                
-            } else if (message.content.startsWith("hm update")) {
+                ok();
+
+            } else if (content === "hm config") {
+                author.send("```" + JSON.stringify(config, null, 4) + "```");
+                ok();
+
+            } else if (content.startsWith("hm simon ")) {
+                channel.send(content.substring(9));
+
+            } else if (content === "hm update") {
                 message.reply("Updating...");
+                ok();
                 WHL.update();
             }
         }
     }
-    
+
     // Deleting "@everyone" made by random people
-    if (message.content.includes("@everyone")
-        && !message.member.roles.find(role => role.name === "Salade de fruits" || role.name === "Généraux")) {
+    if (content.includes("@everyone")
+        && !hasRole(message.member, "Généraux", "Salade de fruits")) {
         warnMember(message.member);
         message.reply("Tu pense faire quoi, au juste? (warn)");
         message.delete()
             .catch(console.error);
     }
-    
-    let tally = message.content.charTally();
-    let highestcount = Math.max(...Object.values(tally));
-    
-    if (!(ignoredChannels.includes(message.channel.name) || message.member.roles.find(role => role.name === "Généraux"))) {
+
+    let tally = content.charTally();
+    let highestCount = Math.max(...Object.values(tally));
+
+    if (!config.ignoredChannels.includes(channel.name) && !hasRole(member, "Généraux")) {
         let warn = "";
-        
+
         if (slowMode.isPrevented(message)) {
-            message.author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.")
+            author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.")
                 .catch(console.error);
             message.delete()
                 .catch(console.error);
-            
-        } else if (message.content.length >= 1000) // Degager les messages de 1000+ chars
+
+        } else if (content.length >= 1000) // Degager les messages de 1000+ chars
             warn = "Pavé césar, ceux qui ne vont pas lire te saluent!";
-        
-        else if (message.attachments.size === 0 && SM.isSpam(message.content))
+
+        else if (message.attachments.size === 0 && SM.isSpam(content))
             warn = "On se calme.";
-        
-        else if (message.content.length >= 20 && (highestcount + 1) / (message.content.length + 2) > 0.75)
+
+        else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75)
             warn = "Stop spam, merci.";
-        
+
         if (warn !== "") {
-            warnMember(message.member);
+            warnMember(member);
             message.reply(warn + " (warn)");
             message.delete()
                 .catch(console.error);
@@ -303,31 +313,23 @@ bot.on("message", (message) => {
 });
 
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
-    if (newMember.nickname
-        && oldMember.nickname !== newMember.nickname
-        && protectednames.get(newMember.nickname.toLowerCase())
-        && protectednames.get(newMember.nickname.toLowerCase()) !== newMember.id) {
+    if (newMember.nickname && oldMember.nickname !== newMember.nickname
+        && config.protectedNames.get(newMember.nickname.toLowerCase())
+        && config.protectedNames.get(newMember.nickname.toLowerCase()) !== newMember.id) {
         warnMember(newMember);
         newMember.setNickname("LE FAUX " + newMember.nickname, "Protected name.")
             .catch(console.error);
     }
 });
 
-function giveDefaultRole(member) {
-    member.addRole(member.guild.roles.find(role => role.name === "secte nsfw"), "10 mins")
-        .catch(() => console.log("tried giving an already given role, git gud"));
-}
-
 bot.on("guildMemberAdd", member => {
-    //setTimeout(giveDefaultRole, 600000, member);
-    
-    if (member.user.username.match(new RegExp(config.autogoulag))) {
-        member.addRole(member.guild.roles.find(role => role.name === "GOULAG"));
+    if (member.user.username.match(new RegExp(config.autoGoulag))) {
+        member.addRole(getRole("GOULAG"));
         member.send(`Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.
-        Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
-        
-        *You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
-        If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
+Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
+
+*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
+If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
     }
 });
 
