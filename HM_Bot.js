@@ -1,9 +1,9 @@
-// Hello !
+// Hello!
 // This bot is being dev'd for the Discord server Hentai Moutarde at https://discord.gg/xX33Vkr
-// It is a french Discord, revolving around hentai (and more, soon(tm))
-// If you plan on stealing this, please kindly go duck yourself.
+// It is an international Discord revolving around hentai (and more)
+// If you plan on stealing this, please kindly go fuck yourself.
 
-// Have any questions ? Go ask Koreos#8912 over at HM !
+// Have any questions ? Go ask Koreos#7227 or PopahGlo#3995 over at HM!
 
 const fs = require("fs");
 
