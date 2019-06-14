@@ -107,10 +107,9 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
 
-    hentaiMoutarde = bot.guilds.get(config.server);
-
     loadConfig();
 
+    hentaiMoutarde = bot.guilds.get(config.server);
     bumpChannel = bot.channels.get("311496070074990593");
     dlmBump();
 });
