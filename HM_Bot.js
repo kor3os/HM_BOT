@@ -310,7 +310,7 @@ bot.on("message", message => {
         }
     }
 });
-
+/* FIXME: config.protectednames apparently doesn't exist. commenting this out to stop crashing.
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
     if (newMember.nickname && oldMember.nickname !== newMember.nickname
         && config.protectedNames.get(newMember.nickname.toLowerCase())
@@ -319,7 +319,7 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
         newMember.setNickname("LE FAUX " + newMember.nickname, "Protected name.")
             .catch(console.error);
     }
-});
+});*/
 
 bot.on("guildMemberAdd", member => {
     if (member.user.username.match(new RegExp(config.autoGoulag))) {
