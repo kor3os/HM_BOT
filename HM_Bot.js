@@ -173,8 +173,9 @@ bot.on("message", message => {
 
     const ok = () => message.react("👌");
 
-    if (msgCount.users[member.toString()] == null
-        || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay) {
+    if (!config.ignoredCount.includes(channel.name)
+        && (msgCount.users[member.toString()] == null
+        || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
         updateMsgCount(member);
     }
 
@@ -338,7 +339,7 @@ bot.on("message", message => {
     let tally = content.charTally();
     let highestCount = Math.max(...Object.values(tally));
 
-    if (!config.ignoredChannels.includes(channel.name) && !memberRole(member, "Généraux")) {
+    if (!config.ignoredWarn.includes(channel.name) && !memberRole(member, "Généraux")) {
         let warn = "";
 
         if (slowMode.isPrevented(message)) {
