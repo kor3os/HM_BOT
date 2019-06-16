@@ -45,16 +45,18 @@ let slowMode = new slowModeManager.Manager();
 // CONFIG
 
 function loadJson(...names) {
+    let arr = [];
     for (let name of names) {
-        global[name] = JSON.parse(fs.readFileSync(name + ".json").toString());
+        arr.push(JSON.parse(fs.readFileSync(name + ".json").toString()));
     }
+    return (arr.length === 1 ? arr[0] : arr);
 }
 
-function saveJson(name, beautify = false) {
-    let content = (beautify ?
-        JSON.stringify(config, null, 4) :
-        JSON.stringify(config));
-    fs.writeFileSync(name + ".json", content, "utf-8");
+function saveJson(content, name, beautify = false) {
+    let contentJson = (beautify ?
+        JSON.stringify(content, null, 4) :
+        JSON.stringify(content));
+    fs.writeFileSync(name + ".json", contentJson, "utf-8");
 }
 
 // UTILITY
@@ -68,13 +70,13 @@ String.prototype.charTally = function charTally() { // Count the number of occur
 
 function today() { // Returns today's date
     let d = new Date();
-    return d.getDay() + "-" + d.getMonth() + "-" + d.getFullYear();
+    return d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear();
 }
 
 // ROLES
 
 // Test if member has one of the roles passed
-const hasRole = (member, ...roles) => member.roles.find(role => roles.includes(role.name));
+const memberRole = (member, ...roles) => member.roles.find(role => roles.includes(role.name));
 
 // Get a role from a guild
 const getRole = (name) => hentaiMoutarde.roles.find(val => val.name === name);
@@ -97,7 +99,7 @@ function warnMember(member) { // Warn a member and mute him if necessary
             delete config.warns[member.toString()];
         }
     }
-    saveJson("config", true);
+    saveJson(config, "config", true);
 }
 
 // Message count (Guide frénétique)
@@ -105,32 +107,39 @@ function updateMsgCount(member) {
     // Update date and add/remove day if new day
     if (today() !== msgCount.date) {
         msgCount.date = today();
-        for (let user of msgCount.users) {
-            msgCount.users[user].pop();
-            msgCount.users[user].unshift(0);
+        
+        for (let user in msgCount.users) {
+            msgCount.users[user].counts.pop();
+            msgCount.users[user].counts.unshift(0);
 
             // No messages in a month, delete entry
-            if (msgCount.users[user].reduce((n, a) => a + n, 0) === 0) {
-                delete msgCount.users[user];
+            if (msgCount.users[user].counts.reduce((n, a) => a + n, 0) === 0) {
+                delete msgCount.users[user].counts;
             }
         }
     }
 
     // If user doesn't have an entry
-    if (!msgCount.users[member.toString()])
-        msgCount.users[member.toString()] = new Array(config.daysMsgCount).fill(0);
+    if (msgCount.users[member.toString()] == null) {
+        msgCount.users[member.toString()] = {
+            counts: new Array(config.daysMsgCount).fill(0),
+            lastMsg: Date.now()
+        };
+    } else {
+        msgCount.users[member.toString()].lastMsg = Date.now();
+    }
 
     // Add message to count and save
-    msgCount.users[member.toString()][0]++;
+    msgCount.users[member.toString()].counts[0]++;
 
-    saveJson("msgCount");
+    saveJson(msgCount, "msgCount");
 
     // Remove/add role with total count
-    let totalCount = msgCount.users[member.toString()].reduce((n, a) => a + n, 0);
+    let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
-    if (totalCount >= config.minMsgCount && !hasRole(member, "Guide frénétique"))
+    if (totalCount >= config.minMsgCount && !memberRole(member, "Guide frénétique"))
         member.addRole(getRole("Guide frénétique"));
-    else if (totalCount < config.minMsgCount && hasRole(member, "Guide frénétique"))
+    else if (totalCount < config.minMsgCount && memberRole(member, "Guide frénétique"))
         member.removeRole(getRole("Guide frénétique"));
 }
 
@@ -148,7 +157,7 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
 
-    loadJson("config", "msgCount");
+    [config, msgCount] = loadJson("config", "msgCount");
 
     hentaiMoutarde = bot.guilds.get(config.server);
     bumpChannel = bot.channels.get("311496070074990593");
@@ -164,7 +173,10 @@ bot.on("message", message => {
 
     const ok = () => message.react("👌");
 
-    updateMsgCount(member);
+    if (msgCount.users[member.toString()] == null
+        || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay) {
+        updateMsgCount(member);
+    }
 
     // User commands
     if (content.startsWith(config.prefixU)) {
@@ -172,7 +184,7 @@ bot.on("message", message => {
         let command = commandAndArgs[0];  // Alias to go faster
 
         if (command === "color") {
-            if (hasRole(member, "Donateur")) {  // Si on a le role donateur
+            if (memberRole(member, "Donateur")) {  // Si on a le role donateur
                 if (commandAndArgs.length === 2) { // I want exactly 1 argument
                     let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
 
@@ -193,7 +205,7 @@ bot.on("message", message => {
                                 name: "dncolor" + commandAndArgs[1],
                                 color: commandAndArgs[1],
                                 hoist: false,
-                                position: hasRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
+                                position: memberRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
                                 mentionable: false
                             })
                                 .then(role => member.addRole(role)
@@ -218,7 +230,7 @@ bot.on("message", message => {
 
     // Mod commands
     if (content.startsWith(config.prefixM)) {
-        if (hasRole(member, "Généraux", "Salade de fruits")) {
+        if (memberRole(member, "Généraux", "Salade de fruits")) {
             let commandAndArgs = content.substring(config.prefixM.length).split(" "); // Split the command and args
             let command = commandAndArgs[0];  // Alias to go faster
 
@@ -264,7 +276,7 @@ bot.on("message", message => {
             } else if (command === "setprotectedname") {
                 if (commandAndArgs[1].startsWith("<@")) {
                     config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
-                    saveJson("config", true);
+                    saveJson(config, "config", true);
                     ok();
                 } else {
                     message.reply("usage: setprotectedname <@user> <name>");
@@ -272,11 +284,11 @@ bot.on("message", message => {
 
             } else if (command === "setgame") {
                 bot.user.setActivity(content.substring(11));
-                message.reply("game set to " + content.substring(11));
+                ok();
 
             } else if (command === "maxwarns") {
                 config.maxWarns = commandAndArgs[1];
-                saveJson("config", true);
+                saveJson(config, "config", true);
                 ok();
 
             } else if (command === "help") {
@@ -292,12 +304,12 @@ bot.on("message", message => {
 
         } else if (config.devs.includes(author.id)) {
             if (content === "hm reload") {
-                loadJson("config");
+                config = loadJson("config");
                 message.reply("Reloaded config successfully.");
 
             } else if (content.startsWith("hm autogoulag ")) {
                 config.autoGoulag = content.substring(14);
-                saveJson("config", true);
+                saveJson(config, "config", true);
                 ok();
 
             } else if (content === "hm config") {
@@ -309,7 +321,6 @@ bot.on("message", message => {
 
             } else if (content === "hm update") {
                 message.reply("Updating...");
-                ok();
                 WHL.update();
             }
         }
@@ -317,7 +328,7 @@ bot.on("message", message => {
 
     // Deleting "@everyone" made by random people
     if (content.includes("@everyone")
-        && !hasRole(message.member, "Généraux", "Salade de fruits")) {
+        && !memberRole(message.member, "Généraux", "Salade de fruits")) {
         warnMember(message.member);
         message.reply("Tu pense faire quoi, au juste? (warn)");
         message.delete()
@@ -327,7 +338,7 @@ bot.on("message", message => {
     let tally = content.charTally();
     let highestCount = Math.max(...Object.values(tally));
 
-    if (!config.ignoredChannels.includes(channel.name) && !hasRole(member, "Généraux")) {
+    if (!config.ignoredChannels.includes(channel.name) && !memberRole(member, "Généraux")) {
         let warn = "";
 
         if (slowMode.isPrevented(message)) {
