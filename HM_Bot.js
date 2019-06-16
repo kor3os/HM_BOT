@@ -221,10 +221,12 @@ bot.on("message", message => {
             } else {  // Le mec a pas le droit
                 message.reply("Vous devez etre donateur pour utiliser cette commande.");
             }
+            return;
         } else if (command === "help") {
             message.reply(`voici mes commandes utilisateur:
 -color <code_couleur/reset> : Seulement pour les donateurs; change la couleur de votre nom au code couleur choisi.
 \texemple: color #FF4200`);
+            return;
         }
     }
 
@@ -237,7 +239,7 @@ bot.on("message", message => {
             if (command === "warn") { // FIXME
                 message.mentions.members.forEach(warnMember);
                 ok();
-
+                return;
             } else if (command === "spamtimeout") {
                 try {
                     SM.changeTimeout(commandAndArgs[1]);
@@ -245,7 +247,7 @@ bot.on("message", message => {
                 } catch (e) {
                     message.reply("Erreur: " + e);
                 }
-
+                return;
             } else if (command === "slowmode") {
                 try {
                     if (commandAndArgs[1] === "0") {
@@ -272,7 +274,7 @@ bot.on("message", message => {
                 } catch (e) {
                     message.reply("Erreur: " + e);
                 }
-
+                return;
             } else if (command === "setprotectedname") {
                 if (commandAndArgs[1].startsWith("<@")) {
                     config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
@@ -281,16 +283,16 @@ bot.on("message", message => {
                 } else {
                     message.reply("usage: setprotectedname <@user> <name>");
                 }
-
+                return;
             } else if (command === "setgame") {
                 bot.user.setActivity(content.substring(11));
                 ok();
-
+                return;
             } else if (command === "maxwarns") {
                 config.maxWarns = commandAndArgs[1];
                 saveJson(config, "config", true);
                 ok();
-
+                return;
             } else if (command === "help") {
                 message.reply(`voici mes commandes moderateur:
 
@@ -300,28 +302,31 @@ bot.on("message", message => {
 -setprotectedname <@user> <name> : reserve un nom pour user. plusieurs noms par user possibles.
 -setgame <game> : change la phrase de profil du bot.
 -maxwarnings <number> : les utilisateurs seront mute apres number warns (default 3)`);
+                return;
             }
 
-        } else if (config.devs.includes(author.id)) {
+        } 
+        if (config.devs.includes(author.id)) {
             if (content === "hm reload") {
                 config = loadJson("config");
                 message.reply("Reloaded config successfully.");
-
+                return;
             } else if (content.startsWith("hm autogoulag ")) {
                 config.autoGoulag = content.substring(14);
                 saveJson(config, "config", true);
                 ok();
-
+                return;
             } else if (content === "hm config") {
                 author.send("```" + JSON.stringify(config, null, 4) + "```");
                 ok();
-
+                return;
             } else if (content.startsWith("hm simon ")) {
                 channel.send(content.substring(9));
-
+                return;
             } else if (content === "hm update") {
                 message.reply("Updating...");
                 WHL.update();
+                return;
             }
         }
     }
