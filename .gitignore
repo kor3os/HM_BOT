@@ -1,6 +1,5 @@
 
-secrets\.json
-warns\.json
-test\.js
-protectednames\.json
 node_modules
+secrets.json
+config.json
+test.js
