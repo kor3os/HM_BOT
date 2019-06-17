@@ -143,6 +143,12 @@ function updateMsgCount(member) {
         member.removeRole(getRole("Guide frénétique"));
 }
 
+function topUsers() {
+    return Object.entries(msgCount.users)
+        .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
+        .sort((e1, e2) => e2[1] - e1[1]);
+}
+
 let bumpChannel;
 
 function dlmBump() {
@@ -224,17 +230,12 @@ bot.on("message", message => {
             }
             return;
         } else if (command === "top") {
-            // Get top as sorted array of arrays
-            let top = Object.entries(msgCount.users)
-                .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
-                .sort((e1, e2) => e2[1] - e1[1]);
-
             // Get page number
             let page = commandAndArgs[1] != null && commandAndArgs[1].match(/^[0-9]+$/) ?
                 parseInt(commandAndArgs[1]) : 1;
 
             let pageN = (page - 1) * 10;
-            top = top.slice(pageN, pageN + 10);
+            let top = topUsers().slice(pageN, pageN + 10);
 
             if (top.length > 0) {
                 // Reduce array to build string with top
@@ -257,14 +258,16 @@ bot.on("message", message => {
             let usrData = msgCount.users[user];
 
             if (usrData != null) {
-                let tot = usrData.counts.reduce((a, b) => a + b, 0),
+                let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
+                    tot = usrData.counts.reduce((a, b) => a + b, 0),
                     avg = Math.round(tot / usrData.counts.length * 100) / 100,
                     max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
 
                 channel.send({
                     embed: {
-                        title: `Score de ${user.user.tag}`,
-                        description: `Messages les 30 derniers jours : **${tot}**
+                        title: `Score de ${user.user.tag} (${config.daysMsgCount} jours)`,
+                        description: `Rang d'utilisateur : **#${rank}**
+Nombre total de messages : **${tot}**
 Moyenne de messages par jour : **${avg}**
 Maximum de messages en un jour : **${max}**`
                     }
