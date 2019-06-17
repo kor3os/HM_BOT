@@ -265,10 +265,10 @@ bot.on("message", message => {
                     max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
 
                 channel.send({
-                    embed: {
-                        title: `Score de ${user.user.tag} (${config.daysMsgCount} jours)`,
-                        description: `Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`
-                    }
+                    embed: new Discord.RichEmbed()
+                        .setColor(16777067)
+                        .setTitle(`Score de ${user.user.tag} (${config.daysMsgCount} jours)`)
+                        .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`)
                 });
             } else {
                 channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
@@ -284,7 +284,7 @@ bot.on("message", message => {
                     .addField("Commandes utilisateur",
                         p + "top [page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.\n" +
                         p + "score [mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).")
-                    .addField("Commandes modérateur",
+                    .addField("Commandes Donateur",
                         p + "color <code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)")
             });
             return;
