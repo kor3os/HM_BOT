@@ -244,7 +244,7 @@ bot.on("message", message => {
                     let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
                     return s + "\n" +
                         ("#" + (i + pageN + 1)).padEnd(5) + " " +
-                        user.username.padEnd(18).slice(0, 18) + " " +
+                        (user != null ? user.username.padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
                         e[1];
                 }, "");
 
