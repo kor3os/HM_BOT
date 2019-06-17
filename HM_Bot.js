@@ -64,8 +64,8 @@ String.prototype.charTally = function charTally() { // Count the number of occur
 };
 
 String.prototype.toMs = function(unit = "ms") {
-    let t = parseInt(this.match(/([0-9]+)/)[0]);
-    let u = this.match(/[0-9]+([a-z]*)/i)[0] || unit;
+    let t = parseInt(this.match(/([0-9]+)/)[1]);
+    let u = this.match(/[0-9]+([a-z]*)/i)[1] || unit;
 
     return {ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000}[u] * t;
 };
