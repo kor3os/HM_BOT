@@ -12,7 +12,7 @@ const secrets = require("./secrets.json");
 
 const WHL = require("./webHookListener.js");
 
-WHL.callback = function () {
+WHL.callback = function() {
     try {
         bot.channels.get("311496070074990593").send("I have just updated!");
     } catch (error) {
@@ -107,7 +107,7 @@ function updateMsgCount(member) {
     // Update date and add/remove day if new day
     if (today() !== msgCount.date) {
         msgCount.date = today();
-        
+
         for (let user in msgCount.users) {
             msgCount.users[user].counts.pop();
             msgCount.users[user].counts.unshift(0);
@@ -175,7 +175,7 @@ bot.on("message", message => {
 
     if (!config.ignoredCount.includes(channel.name)
         && (msgCount.users[member.toString()] == null
-        || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
+            || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
         updateMsgCount(member);
     }
 
@@ -188,17 +188,17 @@ bot.on("message", message => {
             if (memberRole(member, "Donateur")) {  // Si on a le role donateur
                 if (commandAndArgs.length === 2) { // I want exactly 1 argument
                     let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
-            
+
                     if (role) {
                         member.removeRole(role)
                             .catch(console.error);
                     }
-            
+
                     if (commandAndArgs[1] === "reset") { // Reset is not a color, allow people to just remove it
                         cleanUpColorRoles();
                     } else {
                         role = getRole("dncolor" + commandAndArgs[1]);
-                
+
                         if (role) {
                             member.addRole(role);
                         } else {
@@ -228,14 +228,14 @@ bot.on("message", message => {
             let top = Object.entries(msgCount.users)
                 .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
                 .sort((e1, e2) => e2[1] - e1[1]);
-            
+
             // Get page number
             let page = commandAndArgs[1] != null && commandAndArgs[1].match(/^[0-9]+$/) ?
                 parseInt(commandAndArgs[1]) : 1;
-            
+
             let pageN = (page - 1) * 10;
             top = top.slice(pageN, pageN + 10);
-            
+
             if (top.length > 0) {
                 // Reduce array to build string with top
                 let topStr = top.reduce((s, e, i) => {
@@ -245,12 +245,34 @@ bot.on("message", message => {
                         user.username.padEnd(18).slice(0, 20) + " " +
                         e[1];
                 }, "");
-    
+
                 channel.send("```js" + topStr + "```");
             } else {
                 channel.send(`Personne dans le top à la page ${page}`);
             }
-            
+
+            return;
+        } else if (command === "score") {
+            let user = (message.mentions.members.size > 0 ? message.mentions.members.array()[0] : member);
+            let usrData = msgCount.users[user];
+
+            if (usrData != null) {
+                let tot = usrData.counts.reduce((a, b) => a + b, 0),
+                    avg = Math.round(tot / usrData.counts.length * 100) / 100,
+                    max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
+
+                channel.send({
+                    embed: {
+                        title: `Score de ${user.user.tag}`,
+                        description: `Messages les 30 derniers jours : **${tot}**
+Moyenne de messages par jour : **${avg}**
+Maximum de messages en un jour : **${max}**`
+                    }
+                });
+            } else {
+                channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
+            }
+
             return;
         } else if (command === "help") {
             message.reply(`voici mes commandes utilisateur:
@@ -335,7 +357,7 @@ bot.on("message", message => {
                 return;
             }
 
-        } 
+        }
         if (config.devs.includes(author.id)) {
             if (content === "hm reload") {
                 config = loadJson("config");
