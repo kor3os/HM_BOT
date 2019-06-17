@@ -188,27 +188,27 @@ bot.on("message", message => {
             if (memberRole(member, "Donateur")) {  // Si on a le role donateur
                 if (commandAndArgs.length === 2) { // I want exactly 1 argument
                     let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
-
+            
                     if (role) {
                         member.removeRole(role)
                             .catch(console.error);
                     }
-
+            
                     if (commandAndArgs[1] === "reset") { // Reset is not a color, allow people to just remove it
                         cleanUpColorRoles();
                     } else {
                         role = getRole("dncolor" + commandAndArgs[1]);
-
+                
                         if (role) {
                             member.addRole(role);
                         } else {
                             hentaiMoutarde.createRole({
-                                name: "dncolor" + commandAndArgs[1],
-                                color: commandAndArgs[1],
-                                hoist: false,
-                                position: memberRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
-                                mentionable: false
-                            })
+                                    name: "dncolor" + commandAndArgs[1],
+                                    color: commandAndArgs[1],
+                                    hoist: false,
+                                    position: memberRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
+                                    mentionable: false
+                                })
                                 .then(role => member.addRole(role)
                                     .then(() => cleanUpColorRoles())
                                     .catch(console.error))
@@ -222,6 +222,35 @@ bot.on("message", message => {
             } else {  // Le mec a pas le droit
                 message.reply("Vous devez etre donateur pour utiliser cette commande.");
             }
+            return;
+        } else if (command === "top") {
+            // Get top as sorted array of arrays
+            let top = Object.entries(msgCount.users)
+                .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
+                .sort((e1, e2) => e2[1] - e1[1]);
+            
+            // Get page number
+            let page = commandAndArgs[1] != null && commandAndArgs[1].match(/^[0-9]+$/) ?
+                parseInt(commandAndArgs[1]) : 1;
+            
+            let pageN = (page - 1) * 10;
+            top = top.slice(pageN, pageN + 10);
+            
+            if (top.length > 0) {
+                // Reduce array to build string with top
+                let topStr = top.reduce((s, e, i) => {
+                    let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
+                    return s + "\n" +
+                        ("#" + (i + pageN + 1)).padEnd(5) + " " +
+                        user.username.padEnd(18).slice(0, 20) + " " +
+                        e[1];
+                }, "");
+    
+                channel.send("```js" + topStr + "```");
+            } else {
+                channel.send(`Personne dans le top à la page ${page}`);
+            }
+            
             return;
         } else if (command === "help") {
             message.reply(`voici mes commandes utilisateur:
