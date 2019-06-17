@@ -223,12 +223,13 @@ bot.on("message", message => {
                         ok();
                     }
                 } else {  // Le mec a le droit mais il sait pas faire
-                    message.reply("Exemple: `color #FF4200`");
+                    message.reply("exemple: `color #FF4200`");
                 }
             } else {  // Le mec a pas le droit
-                message.reply("Vous devez etre donateur pour utiliser cette commande.");
+                message.reply("vous devez etre donateur pour utiliser cette commande.");
             }
             return;
+
         } else if (command === "top") {
             // Get page number
             let page = commandAndArgs[1] != null && commandAndArgs[1].match(/^[0-9]+$/) ?
@@ -251,8 +252,8 @@ bot.on("message", message => {
             } else {
                 channel.send(`Personne dans le top à la page ${page}`);
             }
-
             return;
+
         } else if (command === "score") {
             let user = (message.mentions.members.size > 0 ? message.mentions.members.array()[0] : member);
             let usrData = msgCount.users[user];
@@ -277,10 +278,15 @@ Maximum de messages en un jour : **${max}**`
             }
 
             return;
+
         } else if (command === "help") {
-            message.reply(`voici mes commandes utilisateur:
--color <code_couleur/reset> : Seulement pour les donateurs; change la couleur de votre nom au code couleur choisi.
-\texemple: color #FF4200`);
+            let p = "`" + config.prefixU;
+            channel.send("__Commandes utilisateur:__\n" +
+                p + "top [page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.\n" +
+                p + "score** [mention]` : Affiche les infos relatives au score d'un utilisateur (ou vous).\n" +
+                "\n__Commandes Donateur:__\n" +
+                p + "color <code_couleur/reset>` : Seulement pour les donateurs; Change la couleur de votre nom au code couleur choisi.\n" +
+                "\texemple: color #FF4200\n");
             return;
         }
     }
@@ -295,6 +301,7 @@ Maximum de messages en un jour : **${max}**`
                 message.mentions.members.forEach(warnMember);
                 ok();
                 return;
+
             } else if (command === "spamtimeout") {
                 try {
                     SM.changeTimeout(commandAndArgs[1]);
@@ -303,6 +310,7 @@ Maximum de messages en un jour : **${max}**`
                     message.reply("Erreur: " + e);
                 }
                 return;
+
             } else if (command === "slowmode") {
                 try {
                     if (commandAndArgs[1] === "0") {
@@ -330,6 +338,7 @@ Maximum de messages en un jour : **${max}**`
                     message.reply("Erreur: " + e);
                 }
                 return;
+
             } else if (command === "setprotectedname") {
                 if (commandAndArgs[1].startsWith("<@")) {
                     config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
@@ -339,32 +348,35 @@ Maximum de messages en un jour : **${max}**`
                     message.reply("usage: setprotectedname <@user> <name>");
                 }
                 return;
+
             } else if (command === "setgame") {
                 bot.user.setActivity(content.substring(11));
                 ok();
                 return;
+
             } else if (command === "maxwarns") {
                 config.maxWarns = commandAndArgs[1];
                 saveJson(config, "config", true);
                 ok();
                 return;
-            } else if (command === "help") {
-                message.reply(`voici mes commandes moderateur:
 
--warn <@user> [reason] : ajoute un warning a user. reason est inutile et sert juste a faire peur.
--spamtimeout <temps en ms> : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postes (default: 30s)
--slowmode <temps>[h/m/s/ms] (default: s) : cree ou modifie un slowmode dans le channel actuel.
--setprotectedname <@user> <name> : reserve un nom pour user. plusieurs noms par user possibles.
--setgame <game> : change la phrase de profil du bot.
--maxwarnings <number> : les utilisateurs seront mute apres number warns (default 3)`);
+            } else if (command === "help") {
+                let p = "`" + config.prefixM;
+                channel.send("__Commandes modérateur__:\n" +
+                    p + "warn <@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.\n" +
+                    p + "spamtimeout <temps en ms>` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)\n" +
+                    p + "slowmode <temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.\n" +
+                    p + "setprotectedname <@user> <name> : Réserve un nom pour user. Plusieurs noms par user possibles.\n" +
+                    p + "setgame <game>` : Change la phrase de statut du bot.\n" +
+                    p + "maxwarnings <number>` : Les utilisateurs seront mute apres number warns. (default 3)\n");
                 return;
             }
-
         }
+
         if (config.devs.includes(author.id)) {
             if (content === "hm reload") {
                 config = loadJson("config");
-                message.reply("Reloaded config successfully.");
+                channel.send("Reloaded config successfully.");
                 return;
             } else if (content.startsWith("hm autogoulag ")) {
                 config.autoGoulag = content.substring(14);
@@ -372,14 +384,14 @@ Maximum de messages en un jour : **${max}**`
                 ok();
                 return;
             } else if (content === "hm config") {
-                author.send("```" + JSON.stringify(config, null, 4) + "```");
+                author.send("```json\n" + JSON.stringify(config, null, 4) + "```");
                 ok();
                 return;
             } else if (content.startsWith("hm simon ")) {
                 channel.send(content.substring(9));
                 return;
             } else if (content === "hm update") {
-                message.reply("Updating...");
+                channel.send("Updating...");
                 WHL.update();
                 return;
             }
@@ -388,9 +400,11 @@ Maximum de messages en un jour : **${max}**`
 
     // Deleting "@everyone" made by random people
     if (content.includes("@everyone")
-        && !memberRole(message.member, "Généraux", "Salade de fruits")) {
-        warnMember(message.member);
-        message.reply("Tu pense faire quoi, au juste? (warn)");
+        && !memberRole(member, "Généraux", "Salade de fruits")) {
+        warnMember(member);
+        channel.send(member.toString() + "\n" +
+            "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
+            "*@​everyone is reserved for admins! Don't try to use it.*");
         message.delete()
             .catch(console.error);
     }
@@ -408,17 +422,20 @@ Maximum de messages en un jour : **${max}**`
                 .catch(console.error);
 
         } else if (content.length >= 1000) // Degager les messages de 1000+ chars
-            warn = "Pavé césar, ceux qui ne vont pas lire te saluent!";
+            warn = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
+                "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
 
         else if (message.attachments.size === 0 && SM.isSpam(content))
-            warn = "On se calme.";
+            warn = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
+                "*Spam prevention - don't repeat yourself. (warn)*";
 
         else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75)
-            warn = "Stop spam, merci.";
+            warn = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
+                "*Flood prevention - don't repeat yourself. (warn)*";
 
         if (warn !== "") {
             warnMember(member);
-            message.reply(warn + " (warn)");
+            channel.send(member.toString() + "\n" + warn);
             message.delete()
                 .catch(console.error);
         }
