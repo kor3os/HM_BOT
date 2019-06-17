@@ -30,11 +30,6 @@ const bot = new Discord.Client();
 let config, msgCount;
 let hentaiMoutarde;
 
-// Useful constants
-const sec = 1000,
-    min = 60 * sec,
-    hour = 60 * min;
-
 // Bot managers
 const spamManager = require("./spammanager.js");
 let SM = new spamManager.Manager(30000);
@@ -68,18 +63,23 @@ String.prototype.charTally = function charTally() { // Count the number of occur
     }, {});
 };
 
+String.prototype.toMs = function(unit = "ms") {
+    let t = parseInt(this.match(/([0-9]+)/)[0]);
+    let u = this.match(/[0-9]+([a-z]*)/i)[0] || unit;
+
+    return {ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000}[u] * t;
+};
+
 function today() { // Returns today's date
     let d = new Date();
     return d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear();
 }
 
-// ROLES
-
 // Test if member has one of the roles passed
 const memberRole = (member, ...roles) => member.roles.find(role => roles.includes(role.name));
 
 // Get a role from a guild
-const getRole = (name) => hentaiMoutarde.roles.find(val => val.name === name);
+const getRole = name => hentaiMoutarde.roles.find(val => val.name === name);
 
 function cleanUpColorRoles() {
     hentaiMoutarde.roles.filter(role => role.name.includes("dncolor") && role.members.size === 0)
@@ -149,50 +149,52 @@ function topUsers() {
         .sort((e1, e2) => e2[1] - e1[1]);
 }
 
-let bumpChannel;
+class Command {
+    constructor(prefix, name, desc, fun, roles = [], users = [], warnUse = false) {
+        this.prefix = (prefix === "u" ? config.prefixU : config.prefixM);
+        this.name = name;
+        this.desc = desc;
+        this.fun = fun;
+        this.roles = roles;
+        this.users = users;
+        this.warnUse = warnUse;
+    }
 
-function dlmBump() {
-    if (bumpChannel) {
-        bumpChannel.send("dlm!bump");
-        setTimeout(dlmBump, (9 * hour) + (Math.random() * (5 * min)));
+    static makeHelp(arr) {
+        return arr.reduce((a, com) => a + "\n• `" + com.prefix + com.name + " " + com.desc, "");
+    }
+
+    run(message) {
+        // Get various useful stuff
+        const {member, channel, mentions, content, author} = message;
+        let args = content.substring(this.prefix.length).split(" ").slice(1);
+
+        if (memberRole(member, ...this.roles) || this.users.includes(author.id)
+            || this.users.length === 0 && this.roles.length === 0) {
+            if (this.fun(member, channel, args, mentions, content, author, message))
+                message.react("👌");
+        } else if (this.warnUse) {
+            let msg = "";
+            if (this.roles.length === 0)
+                msg = "Vous n'êtes pas autorisé à utiliser cette commande.";
+            else if (this.roles.length === 1)
+                msg = `Vous devez avoir le role ${this.roles[0]} pour utiliser cette commande.`;
+            else
+                msg = `Vous devez un des roles ${this.roles.join(" / ")} pour utiliser cette commande.`;
+
+            channel.send(msg);
+        }
     }
 }
 
-// Runs on bot start
-bot.once("ready", () => {
-    console.log(`Bot started ! ${bot.users.size} users.`);
-    bot.user.setActivity("twitter.com/hentaimoutarde");
+let commands;
 
-    [config, msgCount] = loadJson("config", "msgCount");
-
-    hentaiMoutarde = bot.guilds.get(config.server);
-    bumpChannel = bot.channels.get("311496070074990593");
-    dlmBump();
-});
-
-// Message handling
-bot.on("message", message => {
-    // Ignore bot commands and private messages
-    const {author, member, channel, content} = message;
-
-    if (author.bot || channel.type !== "text") return;
-
-    const ok = () => message.react("👌");
-
-    if (!config.ignoredCount.includes(channel.name)
-        && (msgCount.users[member.toString()] == null
-            || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
-        updateMsgCount(member);
-    }
-
-    // User commands
-    if (content.startsWith(config.prefixU)) {
-        let commandAndArgs = content.substring(config.prefixU.length).split(" "); // Split the command and args
-        let command = commandAndArgs[0];  // Alias to go faster
-
-        if (command === "color") {
-            if (memberRole(member, "Donateur")) {  // Si on a le role donateur
-                if (commandAndArgs.length === 2) { // I want exactly 1 argument
+function loadCommands() {
+    commands = [
+        new Command("u", "color",
+            "<code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)",
+            (member, channel, args) => {
+                if (args.length === 1) { // I want exactly 1 argument
                     let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
 
                     if (role) {
@@ -200,17 +202,17 @@ bot.on("message", message => {
                             .catch(console.error);
                     }
 
-                    if (commandAndArgs[1] === "reset") { // Reset is not a color, allow people to just remove it
+                    if (args[0] === "reset") { // Reset is not a color, allow people to just remove it
                         cleanUpColorRoles();
                     } else {
-                        role = getRole("dncolor" + commandAndArgs[1]);
+                        role = getRole("dncolor" + args[0]);
 
                         if (role) {
                             member.addRole(role);
                         } else {
                             hentaiMoutarde.createRole({
-                                    name: "dncolor" + commandAndArgs[1],
-                                    color: commandAndArgs[1],
+                                    name: "dncolor" + args[0],
+                                    color: args[0],
                                     hoist: false,
                                     position: memberRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
                                     mentionable: false
@@ -223,182 +225,207 @@ bot.on("message", message => {
                         ok();
                     }
                 } else {  // Le mec a le droit mais il sait pas faire
-                    message.reply("exemple: `color #FF4200`");
+                    channel.send(member.toString() + ", exemple: `color #FF4200`");
                 }
-            } else {  // Le mec a pas le droit
-                message.reply("vous devez etre donateur pour utiliser cette commande.");
-            }
-            return;
+            }, ["Donateur"], [], true),
 
-        } else if (command === "top") {
-            // Get page number
-            let page = commandAndArgs[1] != null && commandAndArgs[1].match(/^[0-9]+$/) ?
-                parseInt(commandAndArgs[1]) : 1;
+        new Command("u", "top",
+            "[page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.",
+            (member, channel, args) => {
+                // Get page number
+                let page = args[1] != null && args[1].match(/^[0-9]+$/) ?
+                    parseInt(args[1]) : 1;
 
-            let pageN = (page - 1) * 10;
-            let top = topUsers().slice(pageN, pageN + 10);
+                let pageN = (page - 1) * 10;
+                let top = topUsers().slice(pageN, pageN + 10);
 
-            if (top.length > 0) {
-                // Reduce array to build string with top
-                let topStr = top.reduce((s, e, i) => {
-                    let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
-                    return s + "\n" +
-                        ("#" + (i + pageN + 1)).padEnd(5) + " " +
-                        (user != null ? user.username.padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
-                        e[1];
-                }, "");
+                if (top.length > 0) {
+                    // Reduce array to build string with top
+                    let topStr = top.reduce((s, e, i) => {
+                        let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
+                        return s + "\n" +
+                            ("#" + (i + pageN + 1)).padEnd(5) + " " +
+                            (user != null ? user.username.padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
+                            e[1];
+                    }, "");
 
-                channel.send("```js" + topStr + "```");
-            } else {
-                channel.send(`Personne dans le top à la page ${page}`);
-            }
-            return;
+                    channel.send("```js" + topStr + "```");
+                } else {
+                    channel.send(`Personne dans le top à la page ${page}`);
+                }
+            }),
 
-        } else if (command === "score") {
-            let user = (message.mentions.members.size > 0 ? message.mentions.members.array()[0] : member);
-            let usrData = msgCount.users[user];
+        new Command("u", "score",
+            "[mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
+            (member, channel, args, mentions) => {
+                let user = (mentions.members.size > 0 ? mentions.members.array()[0] : member);
+                let usrData = msgCount.users[user];
 
-            if (usrData != null) {
-                let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
-                    tot = usrData.counts.reduce((a, b) => a + b, 0),
-                    avg = Math.round(tot / usrData.counts.length * 100) / 100,
-                    max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
+                if (usrData != null) {
+                    let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
+                        tot = usrData.counts.reduce((a, b) => a + b, 0),
+                        avg = Math.round(tot / usrData.counts.length * 100) / 100,
+                        max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
 
+                    channel.send({
+                        embed: new Discord.RichEmbed()
+                            .setColor(16777067)
+                            .setTitle(`Score de ${user.user.tag} (${config.daysMsgCount} jours)`)
+                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`)
+                    });
+                } else {
+                    channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
+                }
+            }),
+
+        new Command("u", "help",
+            "` : Affiche ce message d'aide.",
+            (member, channel) => {
                 channel.send({
                     embed: new Discord.RichEmbed()
                         .setColor(16777067)
-                        .setTitle(`Score de ${user.user.tag} (${config.daysMsgCount} jours)`)
-                        .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`)
+                        .addField("Commandes utilisateur",
+                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixU && com.roles.length === 0)))
+                        .addField("Commandes donateur",
+                            Command.makeHelp(commands.filter(com => com.roles.length === 1 && com.roles[0] === "Donateur")))
                 });
-            } else {
-                channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
-            }
+            }),
 
-            return;
+        new Command("m", "setgame",
+            "<game>` : Change la phrase de statut du bot.",
+            (member, channel, args) => {
+                bot.user.setActivity(args[0]);
+                return true;
+            }, ["Généraux", "Salade de fruits"]),
 
-        } else if (command === "help") {
-            let p = "• `" + config.prefixU;
-            channel.send({
-                embed: new Discord.RichEmbed()
-                    .setColor(16777067)
-                    .addField("Commandes utilisateur",
-                        p + "top [page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.\n" +
-                        p + "score [mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).")
-                    .addField("Commandes Donateur",
-                        p + "color <code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)")
-            });
-            return;
-        }
+        new Command("m", "warn",
+            "<@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.",
+            (member, channel, args, mentions) => mentions.members.forEach(warnMember),
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "slowmode",
+            "<temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.",
+            (member, channel, args) => {
+                try {
+                    if (args[0] === "0")
+                        slowMode.removeSlowMode(channel);
+                    else if (args[0].match(/^[0-9]+(m?s|m|h)?$/))
+                        slowMode.addSlowMode(args[0].toMs("s"));
+                    else
+                        throw "";
+                    return true;
+                } catch (e) {
+                    channel.send("Erreur d'affectation du slowmode.");
+                }
+            }, ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "spamtimeout",
+            "<temps>[h/m/s/ms]` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)",
+            (member, channel, args) => {
+                try {
+                    SM.changeTimeout(args[0].toMs());
+                    return true;
+                } catch (e) {
+                    channel.send("Erreur d'affectation du timeout");
+                }
+            }, ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "setprotectedname",
+            "<@user> <name>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
+            (member, channel, args) => {
+                if (args[0].startsWith("<@")) {
+                    config.protectedNames.set(content.slice(21 + args[0].length), args[0].slice(2, -1));
+                    saveJson(config, "config", true);
+                    return true;
+                } else {
+                    channel.send("Exemple : " + config.prefixM + "setprotectedname <@user> <name>");
+                }
+            }, ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "reload",
+            "` : Recharge le fichier de config.",
+            () => {
+                config = loadJson("config");
+                return true;
+            }, [], config.devs),
+
+        new Command("m", "autogoulag",
+            "` : Change la regex de goulag automatique au join.",
+            (member, channel, args) => {
+                config.autoGoulag = args[0];
+                saveJson(config, "config", true);
+                return true;
+            }, [], config.devs),
+
+        new Command("m", "config",
+            "` : Envoie le fichier de config.",
+            (member) => {
+                member.send("```json\n" + JSON.stringify(config, null, 4) + "```");
+                return true;
+            }, [], config.devs),
+
+        new Command("m", "reload",
+            "` : Update le bot.",
+            () => {
+                WHL.update();
+                return true;
+            }, [], config.devs),
+
+        new Command("m", "help",
+            "` : Affiche ce message d'aide.",
+            (member, channel) => {
+                channel.send({
+                    embed: new Discord.RichEmbed()
+                        .setColor(16777067)
+                        .addField("Commandes modérateur",
+                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.roles.length === 2)))
+                        .addField("Commandes développeur",
+                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === 2)))
+                });
+            })
+    ];
+}
+
+let bumpChannel;
+
+function dlmBump() {
+    if (bumpChannel) {
+        bumpChannel.send("dlm!bump");
+        setTimeout(dlmBump, "9h".toMs() + (Math.random() * "5m".toMs()));
+    }
+}
+
+// Runs on bot start
+bot.once("ready", () => {
+    console.log(`Bot started ! ${bot.users.size} users.`);
+    bot.user.setActivity("twitter.com/hentaimoutarde");
+
+    [config, msgCount] = loadJson("config", "msgCount");
+
+    hentaiMoutarde = bot.guilds.get(config.server);
+    loadCommands();
+
+    bumpChannel = bot.channels.get("311496070074990593");
+    dlmBump();
+});
+
+// Message handling
+bot.on("message", message => {
+    const {author, member, channel, content} = message;
+
+    // Ignore bot commands and private messages
+    if (author.bot || channel.type !== "text") return;
+
+    if (!config.ignoredCount.includes(channel.name)
+        && (msgCount.users[member.toString()] == null
+            || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
+        updateMsgCount(member);
     }
 
-    // Mod commands
-    if (content.startsWith(config.prefixM)) {
-        if (memberRole(member, "Généraux", "Salade de fruits")) {
-            let commandAndArgs = content.substring(config.prefixM.length).split(" "); // Split the command and args
-            let command = commandAndArgs[0];  // Alias to go faster
-
-            if (command === "warn") { // FIXME
-                message.mentions.members.forEach(warnMember);
-                ok();
-                return;
-
-            } else if (command === "spamtimeout") {
-                try {
-                    SM.changeTimeout(commandAndArgs[1]);
-                    ok();
-                } catch (e) {
-                    message.reply("Erreur: " + e);
-                }
-                return;
-
-            } else if (command === "slowmode") {
-                try {
-                    if (commandAndArgs[1] === "0") {
-                        slowMode.removeSlowMode(channel);
-                        ok();
-
-                    } else if (commandAndArgs[1] === "help") {
-                        message.reply("usage: slowmode <time>[h/m/s/ms] (default: seconds)\nexample: slowmode 24h\nremove with slowmode 0");
-
-                    } else {
-                        if (commandAndArgs[1].endsWith("h"))
-                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * hour);
-                        else if (commandAndArgs[1].endsWith("m"))
-                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * min);
-                        else if (commandAndArgs[1].endsWith("s"))
-                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -1) * sec);
-                        else if (commandAndArgs[1].endsWith("ms"))
-                            slowMode.addSlowMode(channel, commandAndArgs[1].slice(0, -2));
-                        else
-                            slowMode.addSlowMode(channel, commandAndArgs[1] * sec);
-
-                        ok();
-                    }
-                } catch (e) {
-                    message.reply("Erreur: " + e);
-                }
-                return;
-
-            } else if (command === "setprotectedname") {
-                if (commandAndArgs[1].startsWith("<@")) {
-                    config.protectedNames.set(content.slice(21 + commandAndArgs[1].length), commandAndArgs[1].slice(2, -1));
-                    saveJson(config, "config", true);
-                    ok();
-                } else {
-                    message.reply("usage: setprotectedname <@user> <name>");
-                }
-                return;
-
-            } else if (command === "setgame") {
-                bot.user.setActivity(content.substring(11));
-                ok();
-                return;
-
-            } else if (command === "maxwarns") {
-                config.maxWarns = commandAndArgs[1];
-                saveJson(config, "config", true);
-                ok();
-                return;
-
-            } else if (command === "help") {
-                let p = "• `" + config.prefixM;
-                channel.send({
-                    embed: new Discord.RichEmbed()
-                        .setColor(16777067)
-                        .addField("Commandes modérateur:",
-                            p + "warn <@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.\n" +
-                            p + "spamtimeout <temps en ms>` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)\n" +
-                            p + "slowmode <temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.\n" +
-                            p + "setprotectedname <@user> <name>` : Réserve un nom pour user. Plusieurs noms par user possibles.\n" +
-                            p + "setgame <game>` : Change la phrase de statut du bot.\n" +
-                            p + "maxwarnings <number>` : Les utilisateurs seront mute apres number warns. (default 3)\n")
-                });
-                return;
-            }
-        }
-
-        if (config.devs.includes(author.id)) {
-            if (content === "hm reload") {
-                config = loadJson("config");
-                channel.send("Reloaded config successfully.");
-                return;
-            } else if (content.startsWith("hm autogoulag ")) {
-                config.autoGoulag = content.substring(14);
-                saveJson(config, "config", true);
-                ok();
-                return;
-            } else if (content === "hm config") {
-                author.send("```json\n" + JSON.stringify(config, null, 4) + "```");
-                ok();
-                return;
-            } else if (content.startsWith("hm simon ")) {
-                channel.send(content.substring(9));
-                return;
-            } else if (content === "hm update") {
-                channel.send("Updating...");
-                WHL.update();
-                return;
-            }
+    for (let com of commands) {
+        if (content.startsWith(com.prefix + com.name)) {
+            com.run(message);
+            break;
         }
     }
 
