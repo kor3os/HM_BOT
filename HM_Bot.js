@@ -244,7 +244,7 @@ bot.on("message", message => {
                     let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
                     return s + "\n" +
                         ("#" + (i + pageN + 1)).padEnd(5) + " " +
-                        user.username.padEnd(18).slice(0, 20) + " " +
+                        user.username.padEnd(18).slice(0, 18) + " " +
                         e[1];
                 }, "");
 
@@ -267,10 +267,7 @@ bot.on("message", message => {
                 channel.send({
                     embed: {
                         title: `Score de ${user.user.tag} (${config.daysMsgCount} jours)`,
-                        description: `Rang d'utilisateur : **#${rank}**
-Nombre total de messages : **${tot}**
-Moyenne de messages par jour : **${avg}**
-Maximum de messages en un jour : **${max}**`
+                        description: `Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`
                     }
                 });
             } else {
@@ -280,13 +277,16 @@ Maximum de messages en un jour : **${max}**`
             return;
 
         } else if (command === "help") {
-            let p = "`" + config.prefixU;
-            channel.send("__Commandes utilisateur:__\n" +
-                p + "top [page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.\n" +
-                p + "score** [mention]` : Affiche les infos relatives au score d'un utilisateur (ou vous).\n" +
-                "\n__Commandes Donateur:__\n" +
-                p + "color <code_couleur/reset>` : Seulement pour les donateurs; Change la couleur de votre nom au code couleur choisi.\n" +
-                "\texemple: color #FF4200\n");
+            let p = "• `" + config.prefixU;
+            channel.send({
+                embed: new Discord.RichEmbed()
+                    .setColor(16777067)
+                    .addField("Commandes utilisateur",
+                        p + "top [page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.\n" +
+                        p + "score [mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).")
+                    .addField("Commandes modérateur",
+                        p + "color <code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)")
+            });
             return;
         }
     }
@@ -361,14 +361,18 @@ Maximum de messages en un jour : **${max}**`
                 return;
 
             } else if (command === "help") {
-                let p = "`" + config.prefixM;
-                channel.send("__Commandes modérateur__:\n" +
-                    p + "warn <@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.\n" +
-                    p + "spamtimeout <temps en ms>` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)\n" +
-                    p + "slowmode <temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.\n" +
-                    p + "setprotectedname <@user> <name> : Réserve un nom pour user. Plusieurs noms par user possibles.\n" +
-                    p + "setgame <game>` : Change la phrase de statut du bot.\n" +
-                    p + "maxwarnings <number>` : Les utilisateurs seront mute apres number warns. (default 3)\n");
+                let p = "• `" + config.prefixM;
+                channel.send({
+                    embed: new Discord.RichEmbed()
+                        .setColor(16777067)
+                        .addField("Commandes modérateur:",
+                            p + "warn <@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.\n" +
+                            p + "spamtimeout <temps en ms>` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)\n" +
+                            p + "slowmode <temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.\n" +
+                            p + "setprotectedname <@user> <name>` : Réserve un nom pour user. Plusieurs noms par user possibles.\n" +
+                            p + "setgame <game>` : Change la phrase de statut du bot.\n" +
+                            p + "maxwarnings <number>` : Les utilisateurs seront mute apres number warns. (default 3)\n")
+                });
                 return;
             }
         }
@@ -455,11 +459,10 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
 bot.on("guildMemberAdd", member => {
     if (member.user.username.match(new RegExp(config.autoGoulag))) {
         member.addRole(getRole("GOULAG"));
-        member.send(`Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.
-Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.
-
-*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.
-If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*`);
+        member.send("Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.\n" +
+            "Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.\n" +
+            "\n*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.\n" +
+            "If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*");
     }
 });
 
