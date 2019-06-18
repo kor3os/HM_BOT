@@ -43,7 +43,9 @@ function loadJson(...names) {
     let arr = [];
     for (let name of names) {
         arr.push(JSON.parse(fs.readFileSync(name + ".json").toString()
-            .replace(/\s*/g, "")));
+            .replace(" ", "¤")
+            .replace(/\s*/g, "")
+            .replace("¤", " ")));
     }
     return (arr.length === 1 ? arr[0] : arr);
 }
