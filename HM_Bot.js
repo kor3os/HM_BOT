@@ -315,6 +315,8 @@ function loadCommands() {
             "<game>` : Change la phrase de statut du bot.",
             (member, channel, args) => {
                 bot.user.setActivity(args[0]);
+                config.game = args[0];
+                saveJson(config, "config", true);
                 return true;
             }, ["Généraux", "Salade de fruits"]),
 
@@ -424,7 +426,7 @@ function dlmBump() {
 // Runs on bot start
 bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
-    bot.user.setActivity("twitter.com/hentaimoutarde");
+    bot.user.setActivity(config.game);
 
     // Load configuration files
     [config, msgCount] = loadJson("config", "msgCount");
@@ -442,7 +444,7 @@ bot.once("ready", () => {
 bot.on("message", message => {
     const {author, member, channel, content} = message;
 
-    // Ignore bot commands and private messages
+    // Ignore bot and private messages
     if (author.bot || channel.type !== "text") return;
 
     if (!config.ignoredCount.includes(channel.name)
