@@ -116,9 +116,13 @@ function updateMsgCount(member) {
             msgCount.users[user].counts.pop();
             msgCount.users[user].counts.unshift(0);
 
+            let total = msgCount.users[user].counts.reduce((n, a) => a + n, 0);
+
             // No messages in a month, delete entry
-            if (msgCount.users[user].counts.reduce((n, a) => a + n, 0) === 0) {
+            if (total === 0) {
                 delete msgCount.users[user].counts;
+            } else if (total < config.minMsgCount && memberRole(member, "Guide frénétique")) {
+                member.removeRole(getRole("Guide frénétique"));
             }
         }
     }
@@ -142,11 +146,14 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
-    // Give role to people above the treshold if they don't have it
-    if (totalCount >= config.minMsgCount && !memberRole(member, "Guide frénétique"))
+    // Give role to people above the treshold (and who joined at lease 30 days ago) if they don't have it
+    if (totalCount >= config.minMsgCount
+        && !memberRole(member, "Guide frénétique")
+        && Date.now() > member.joinedTimestamp + "30d".toMs())
         member.addRole(getRole("Guide frénétique"));
     // Remove role from people under the treshold if they have it
-    else if (totalCount < config.minMsgCount && memberRole(member, "Guide frénétique"))
+    else if (totalCount < config.minMsgCount
+        && memberRole(member, "Guide frénétique"))
         member.removeRole(getRole("Guide frénétique"));
 }
 
@@ -183,7 +190,7 @@ class Command {
             || this.users.length === 0 && this.roles.length === 0) {
             // Run the command function. If return is truthy, react to the command for user feedback
             if (this.fun(member, channel, args, mentions, content, author, message))
-                message.react("👌");
+                message.react("587024299639046146");
         } else if (this.warnUse) {
             let msg = "";
             if (this.roles.length === 0)
