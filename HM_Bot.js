@@ -426,10 +426,10 @@ function dlmBump() {
 // Runs on bot start
 bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
-    bot.user.setActivity(config.game);
 
     // Load configuration files
     [config, msgCount] = loadJson("config", "msgCount");
+    bot.user.setActivity(config.game);
 
     // Get server and load all bot commands
     hentaiMoutarde = bot.guilds.get(config.server);
