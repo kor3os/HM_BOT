@@ -42,7 +42,8 @@ let slowMode = new slowModeManager.Manager();
 function loadJson(...names) {
     let arr = [];
     for (let name of names) {
-        arr.push(JSON.parse(fs.readFileSync(name + ".json").toString()));
+        arr.push(JSON.parse(fs.readFileSync(name + ".json").toString()
+            .replace(/​/g, "")));
     }
     return (arr.length === 1 ? arr[0] : arr);
 }
