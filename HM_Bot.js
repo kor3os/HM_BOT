@@ -404,7 +404,7 @@ function loadCommands() {
                         .addField("Commandes modérateur",
                             Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.roles.length === 2)))
                         .addField("Commandes développeur",
-                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === 2)))
+                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === config.devs.length)))
                 });
             })
     ];
