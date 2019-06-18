@@ -406,7 +406,7 @@ function loadCommands() {
                         .addField("Commandes développeur",
                             Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === config.devs.length)))
                 });
-            })
+            }, ["Généraux", "Salade de fruits"], config.devs)
     ];
 }
 
