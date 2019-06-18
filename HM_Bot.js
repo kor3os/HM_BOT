@@ -56,7 +56,8 @@ function saveJson(content, name, beautify = false) {
 
 // UTILITY
 
-String.prototype.charTally = function charTally() { // Count the number of occurrences of each character in the string.
+// Count the number of occurrences of each character in the string.
+String.prototype.charTally = function charTally() {
     return this.split("").reduce((acc, char) => {
         acc[char] = (acc[char] || 0) + 1;
         return acc;
@@ -70,7 +71,8 @@ String.prototype.toMs = function(unit = "ms") {
     return {ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000}[u] * t;
 };
 
-function today() { // Returns today's date
+// Returns today's date
+function today() {
     let d = new Date();
     return d.getDate() + "-" + (d.getMonth() + 1) + "-" + d.getFullYear();
 }
@@ -86,11 +88,13 @@ function cleanUpColorRoles() {
         .forEach(role => role.delete());
 }
 
-function warnMember(member) { // Warn a member and mute him if necessary
+// Warn a member and mute him if necessary
+function warnMember(member) {
     console.log(`warning user ${member.user.username}`);
 
-    if (!config.warns[member.toString()]) { // Is he already warned?
-        config.warns[member.toString()] = 1; // If not, add him to the list of warned
+    // If he isn't warned, add him to the list
+    if (!config.warns[member.toString()]) {
+        config.warns[member.toString()] = 1;
     } else {
         config.warns[member.toString()] += 1;
         if (config.warns[member.toString()] >= config.maxWarns) {
@@ -104,7 +108,7 @@ function warnMember(member) { // Warn a member and mute him if necessary
 
 // Message count (Guide frénétique)
 function updateMsgCount(member) {
-    // Update date and add/remove day if new day
+    // Update date and shift counts if new day
     if (today() !== msgCount.date) {
         msgCount.date = today();
 
@@ -119,13 +123,14 @@ function updateMsgCount(member) {
         }
     }
 
-    // If user doesn't have an entry
+    // If user doesn't have an entry, make count array and set date
     if (msgCount.users[member.toString()] == null) {
         msgCount.users[member.toString()] = {
             counts: new Array(config.daysMsgCount).fill(0),
             lastMsg: Date.now()
         };
     } else {
+        // Update last message date
         msgCount.users[member.toString()].lastMsg = Date.now();
     }
 
@@ -137,12 +142,15 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
+    // Give role to people above the treshold if they don't have it
     if (totalCount >= config.minMsgCount && !memberRole(member, "Guide frénétique"))
         member.addRole(getRole("Guide frénétique"));
+    // Remove role from people under the treshold if they have it
     else if (totalCount < config.minMsgCount && memberRole(member, "Guide frénétique"))
         member.removeRole(getRole("Guide frénétique"));
 }
 
+// Get list of [user, score] sorted by score (descending)
 function topUsers() {
     return Object.entries(msgCount.users)
         .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
@@ -160,6 +168,7 @@ class Command {
         this.warnUse = warnUse;
     }
 
+    // Make help string from array of commands
     static makeHelp(arr) {
         return arr.reduce((a, com) => a + "\n• `" + com.prefix + com.name + " " + com.desc, "");
     }
@@ -169,8 +178,10 @@ class Command {
         const {member, channel, mentions, content, author} = message;
         let args = content.substring(this.prefix.length).split(" ").slice(1);
 
+        // If user has one of this.roles OR is in this.users OR both are empty ...
         if (memberRole(member, ...this.roles) || this.users.includes(author.id)
             || this.users.length === 0 && this.roles.length === 0) {
+            // Run the command function. If return is truthy, react to the command for user feedback
             if (this.fun(member, channel, args, mentions, content, author, message))
                 message.react("👌");
         } else if (this.warnUse) {
@@ -194,27 +205,31 @@ function loadCommands() {
         new Command("u", "color",
             "<code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)",
             (member, channel, args) => {
-                if (args.length === 1) { // I want exactly 1 argument
-                    let role = member.roles.find(val => val.name.includes("dncolor"));  // Find the user's color role if there is one
+                if (args.length === 1) {
+                    // Find the user's color role if there is one
+                    let role = member.roles.find(val => val.name.includes("dncolor"));
 
                     if (role) {
                         member.removeRole(role)
                             .catch(console.error);
                     }
 
-                    if (args[0] === "reset") { // Reset is not a color, allow people to just remove it
+                    // If reset is passed, simply clean up roles to remove it entirely
+                    if (args[0] === "reset") {
                         cleanUpColorRoles();
                     } else {
                         role = getRole("dncolor" + args[0]);
 
+                        // If role exists, give it to the user
                         if (role) {
                             member.addRole(role);
                         } else {
+                            // Else create role add then give it to the user
                             hentaiMoutarde.createRole({
                                     name: "dncolor" + args[0],
                                     color: args[0],
                                     hoist: false,
-                                    position: memberRole(member, "Donateur").position + 1, // 1 au dessus du role donateur
+                                    position: memberRole(member, "Donateur").position + 1, // 1 above "Donateur" role
                                     mentionable: false
                                 })
                                 .then(role => member.addRole(role)
@@ -222,9 +237,10 @@ function loadCommands() {
                                     .catch(console.error))
                                 .catch(console.error);
                         }
-                        ok();
                     }
-                } else {  // Le mec a le droit mais il sait pas faire
+                    return true;
+                } else {
+                    // Wrong usage of the command
                     channel.send(member.toString() + ", exemple: `color #FF4200`");
                 }
             }, ["Donateur"], [], true),
@@ -243,6 +259,7 @@ function loadCommands() {
                     // Reduce array to build string with top
                     let topStr = top.reduce((s, e, i) => {
                         let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
+                        // Format string as "#Rank Username           Score" with padding + cutting
                         return s + "\n" +
                             ("#" + (i + pageN + 1)).padEnd(5) + " " +
                             (user != null ? user.username.padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
@@ -251,6 +268,7 @@ function loadCommands() {
 
                     channel.send("```js" + topStr + "```");
                 } else {
+                    // Page too far, no users
                     channel.send(`Personne dans le top à la page ${page}`);
                 }
             }),
@@ -258,10 +276,12 @@ function loadCommands() {
         new Command("u", "score",
             "[mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
             (member, channel, args, mentions) => {
+                // First mention, or by default the user sending the message
                 let user = (mentions.members.size > 0 ? mentions.members.array()[0] : member);
                 let usrData = msgCount.users[user];
 
                 if (usrData != null) {
+                    // Get various stats from user data
                     let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
                         tot = usrData.counts.reduce((a, b) => a + b, 0),
                         avg = Math.round(tot / usrData.counts.length * 100) / 100,
@@ -307,10 +327,13 @@ function loadCommands() {
             "<temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.",
             (member, channel, args) => {
                 try {
+                    // If first arg is 0, remove slowmode
                     if (args[0] === "0")
                         slowMode.removeSlowMode(channel);
+                    // Else, if it is a well structured time, add slow mode with this time
                     else if (args[0].match(/^[0-9]+(m?s|m|h)?$/))
                         slowMode.addSlowMode(args[0].toMs("s"));
+                    // Else throw exception to show error
                     else
                         throw "";
                     return true;
@@ -360,6 +383,7 @@ function loadCommands() {
         new Command("m", "config",
             "` : Envoie le fichier de config.",
             (member) => {
+                // Send beautified JSON with syntax highlighting
                 member.send("```json\n" + JSON.stringify(config, null, 4) + "```");
                 return true;
             }, [], config.devs),
@@ -389,7 +413,9 @@ function loadCommands() {
 let bumpChannel;
 
 function dlmBump() {
+    // If bump channel exists (useful for testing purposes)
     if (bumpChannel) {
+        // Bump, and call recursively with a slightly random timeout (9h + (0-5 min))
         bumpChannel.send("dlm!bump");
         setTimeout(dlmBump, "9h".toMs() + (Math.random() * "5m".toMs()));
     }
@@ -400,11 +426,14 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
     bot.user.setActivity("twitter.com/hentaimoutarde");
 
+    // Load configuration files
     [config, msgCount] = loadJson("config", "msgCount");
 
+    // Get server and load all bot commands
     hentaiMoutarde = bot.guilds.get(config.server);
     loadCommands();
 
+    // Get bump channel and bump
     bumpChannel = bot.channels.get("311496070074990593");
     dlmBump();
 });
@@ -422,14 +451,15 @@ bot.on("message", message => {
         updateMsgCount(member);
     }
 
+    // Run message as command, if it exactly matches a command name (case insensitive)
     for (let com of commands) {
-        if (content.startsWith(com.prefix + com.name)) {
+        if (content.toLowerCase().startsWith(com.prefix + com.name)) {
             com.run(message);
             break;
         }
     }
 
-    // Deleting "@everyone" made by random people
+    // Delete @everyone sent by random people
     if (content.includes("@everyone")
         && !memberRole(member, "Généraux", "Salade de fruits")) {
         warnMember(member);
@@ -440,6 +470,7 @@ bot.on("message", message => {
             .catch(console.error);
     }
 
+    // Count chars and get most used one
     let tally = content.charTally();
     let highestCount = Math.max(...Object.values(tally));
 
@@ -452,18 +483,23 @@ bot.on("message", message => {
             message.delete()
                 .catch(console.error);
 
-        } else if (content.length >= 1000) // Degager les messages de 1000+ chars
+        }
+        // Messages with more than 1000 chars
+        else if (content.length >= 1000)
             warn = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
                 "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
 
+        // Messages which have been sent multiple times
         else if (message.attachments.size === 0 && SM.isSpam(content))
             warn = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
                 "*Spam prevention - don't repeat yourself. (warn)*";
 
+        // Messages with a repeating char for 3/4 of it
         else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75)
             warn = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
                 "*Flood prevention - don't repeat yourself. (warn)*";
 
+        // If any of these has been found, warn the user and delete the message
         if (warn !== "") {
             warnMember(member);
             channel.send(member.toString() + "\n" + warn);
@@ -474,6 +510,7 @@ bot.on("message", message => {
 });
 
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
+    // If member changed nickname and it is a protected one, warn & rename him
     if (newMember.nickname && oldMember.nickname !== newMember.nickname
         && config.protectedNames[newMember.nickname.toLowerCase()]
         && config.protectedNames[newMember.nickname.toLowerCase()] !== newMember.id) {
@@ -484,6 +521,7 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
 });
 
 bot.on("guildMemberAdd", member => {
+    // If username matches the "auto goulag" regex, add the GOULAG role and send him a pm in case of error
     if (member.user.username.match(new RegExp(config.autoGoulag))) {
         member.addRole(getRole("GOULAG"));
         member.send("Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.\n" +
@@ -493,5 +531,4 @@ bot.on("guildMemberAdd", member => {
     }
 });
 
-
-bot.login(secrets.token); //Yes.
+bot.login(secrets.token);
