@@ -259,8 +259,8 @@ function loadCommands() {
             "[page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.",
             (member, channel, args) => {
                 // Get page number
-                let page = args[1] != null && args[1].match(/^[0-9]+$/) ?
-                    parseInt(args[1]) : 1;
+                let page = args[0] != null && args[0].match(/^[0-9]+$/) ?
+                    parseInt(args[0]) : 1;
 
                 let pageN = (page - 1) * 10;
                 let top = topUsers().slice(pageN, pageN + 10);
@@ -295,13 +295,13 @@ function loadCommands() {
                     let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
                         tot = usrData.counts.reduce((a, b) => a + b, 0),
                         avg = Math.round(tot / usrData.counts.length * 100) / 100,
-                        max = usrData.counts.reduce((a, b) => (a > b ? a : b), 0);
+                        last = usrData.counts[0];
 
                     channel.send({
                         embed: new Discord.RichEmbed()
                             .setColor(16777067)
                             .setTitle(`Score de ${user.user.tag} (${config.daysMsgCount} jours)`)
-                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMaximum de messages en un jour : **${max}**`)
+                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMessages du jour : **${last}**`)
                     });
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
