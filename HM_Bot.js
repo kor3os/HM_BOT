@@ -365,7 +365,7 @@ function loadCommands() {
             ["Généraux", "Salade de fruits"]),
 
         new Command("m", "warns",
-            "<@user> [raison]` : Affiche les warns d'un utilisateur.",
+            "<@user>` : Affiche les warns d'un utilisateur.",
             async (member, channel, args, memberArg) => {
                 if (memberArg != null) {
                     if (config.warns[memberArg] != null) {
@@ -401,15 +401,6 @@ function loadCommands() {
 
         new Command("m", "softban",
             "<@user> [raison]` : Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
-            async (member, channel, args, memberArg) => {
-                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
-                    .then(member => hentaiMoutarde.unban(member));
-                return true;
-            },
-            ["Généraux", "Salade de fruits"]),
-
-        new Command("m", "softban",
-            "<@user>` : Affiche les warns d'un utilisateur.",
             async (member, channel, args, memberArg) => {
                 await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
                     .then(member => hentaiMoutarde.unban(member));
