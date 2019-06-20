@@ -92,18 +92,22 @@ function cleanUpColorRoles() {
 }
 
 // Warn a member and mute him if necessary
-function warnMember(member) {
+function warnMember(member, reason = "") {
     console.log(`warning user ${member.user.username}`);
 
-    // If he isn't warned, add him to the list
+    // If he isn't warned, create an entry with one reason
     if (!config.warns[member.toString()]) {
-        config.warns[member.toString()] = 1;
+        config.warns[member.toString()] = [raison];
     } else {
-        config.warns[member.toString()] += 1;
-        if (config.warns[member.toString()] >= config.maxWarns) {
+        // Else add a new warn reason
+        config.warns[member.toString()].push(reason);
+        // Mute user if above warn threshold
+        let nWarns = config.warns[member.toString()].length;
+        if (nWarns > 0
+            && nWarns % config.maxWarns === 0
+            && !memberRole(member, "Muted")) {
             member.addRole(getRole("Muted"), "3rd warning")
                 .catch(console.error);
-            delete config.warns[member.toString()];
         }
     }
     saveJson(config, "config", true);
@@ -149,7 +153,7 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
-    // Give role to people above the treshold (and who joined at lease 30 days ago) if they don't have it
+    // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
     if (totalCount >= config.minMsgCount
         && !memberRole(member, "Guide frénétique")
         && Date.now() > member.joinedTimestamp + "30d".toMs())
@@ -180,7 +184,7 @@ class Command {
 
     // Make help string from array of commands
     static makeHelp(arr) {
-        return arr.reduce((a, com) => a + "\n• `" + com.prefix + com.name + " " + com.desc, "");
+        return arr.map(com => "• `" + com.prefix + com.name + " " + com.desc).join("\n");
     }
 
     run(message) {
@@ -201,8 +205,8 @@ class Command {
                 memberArg = hentaiMoutarde.members.get(args[0]);
             // Else, find a user with an username matching perfectly the first arg...
             else if (args[0])
-                memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase() === args[0].toLowerCase() ||
-                    (mem.nickname && mem.nickname.toLowerCase() === args[0].toLowerCase()));
+                memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase() === args[0].toLowerCase()
+                    || mem.user.tag === args[0] || (mem.nickname && mem.nickname.toLowerCase() === args[0].toLowerCase()));
 
             // ... or one that contains the first arg.
             if (memberArg == null)
@@ -215,7 +219,7 @@ class Command {
             || this.users.length === 0 && this.roles.length === 0) {
             // Run the command function. If return is truthy, react to the command for user feedback
             if (this.fun(member, channel, args, memberArg, content, author, message))
-                message.react("587024299639046146");
+                message.react("587024299639046146"); // :MoutardeKemono:
         } else if (this.warnUse) {
             let msg = "";
             if (this.roles.length === 0)
@@ -235,7 +239,7 @@ let commands;
 function loadCommands() {
     commands = [
         new Command("u", "color",
-            "<code_couleur/reset>` : Change la couleur de votre nom au code couleur choisi. (exemple: `" + config.prefixU + "color #FF4200`)",
+            `<code_couleur/reset>\` : Change la couleur de votre nom au code couleur choisi. (exemple: \`${config.prefixU}color #FF4200\`)`,
             (member, channel, args) => {
                 if (args.length === 1) {
                     // Find the user's color role if there is one
@@ -273,12 +277,12 @@ function loadCommands() {
                     return true;
                 } else {
                     // Wrong usage of the command
-                    channel.send(member.toString() + ", exemple: `color #FF4200`");
+                    channel.send("Exemple : `color #FF4200`");
                 }
             }, ["Donateur"], [], true),
 
         new Command("u", "top",
-            "[page]` : Affiche le top de score (nombre de message) sur les " + config.daysMsgCount + " derniers jours.",
+            `[page]\` : Affiche le top de score (nombre de message) sur les ${config.daysMsgCount} derniers jours.`,
             (member, channel, args) => {
                 // Get page number
                 let page = args[0] != null && args[0].match(/^[0-9]+$/) ?
@@ -306,7 +310,7 @@ function loadCommands() {
             }),
 
         new Command("u", "score",
-            "[mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
+            "[@user]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
             (member, channel, args, memberArg) => {
                 // By default the user sending the message
                 if (memberArg == null) memberArg = member;
@@ -353,8 +357,64 @@ function loadCommands() {
             }, ["Généraux", "Salade de fruits"]),
 
         new Command("m", "warn",
-            "<@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.",
-            (member, channel, args, memberArg) => warnMember(memberArg),
+            "<@user> [raison]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.",
+            async (member, channel, args, memberArg) => {
+                await warnMember(memberArg, args.slice(1).join(" "));
+                return true;
+            },
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "warns",
+            "<@user> [raison]` : Affiche les warns d'un utilisateur.",
+            async (member, channel, args, memberArg) => {
+                if (memberArg != null) {
+                    if (config.warns[memberArg] != null) {
+                        channel.send({
+                            embed: new Discord.RichEmbed()
+                                .setColor(16777067)
+                                .setDescription(config.warns[memberArg].map(reason => "• " + (reason || "Aucune raison")).join("\n"))
+                        });
+                    } else {
+                        channel.send(`Aucun warns pour l'utilisateur ${memberArg.user.tag}`);
+                    }
+                } else {
+                    channel.send(`Exemple : ${config.prefixM}warns Dont#9718`);
+                }
+            },
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "kick",
+            "<@user> [raison]` : Kick un utilisateur.",
+            async (member, channel, args, memberArg) => {
+                await memberArg.kick({days: 1, reason: args.slice(1).join(" ") || null});
+                return true;
+            },
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "ban",
+            "<@user> [raison]` : Ban un utilisateur, et supprime 1 jour de messages.",
+            async (member, channel, args, memberArg) => {
+                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null});
+                return true;
+            },
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "softban",
+            "<@user> [raison]` : Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
+            async (member, channel, args, memberArg) => {
+                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
+                    .then(member => hentaiMoutarde.unban(member));
+                return true;
+            },
+            ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "softban",
+            "<@user>` : Affiche les warns d'un utilisateur.",
+            async (member, channel, args, memberArg) => {
+                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
+                    .then(member => hentaiMoutarde.unban(member));
+                return true;
+            },
             ["Généraux", "Salade de fruits"]),
 
         new Command("m", "slowmode",
@@ -388,14 +448,14 @@ function loadCommands() {
             }, ["Généraux", "Salade de fruits"]),
 
         new Command("m", "setprotectedname",
-            "<@user> <name>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
+            "<@user> <nom>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
             (member, channel, args) => {
                 if (args[0].startsWith("<@")) {
                     config.protectedNames.set(content.slice(21 + args[0].length), args[0].slice(2, -1));
                     saveJson(config, "config", true);
                     return true;
                 } else {
-                    channel.send("Exemple : " + config.prefixM + "setprotectedname <@user> <name>");
+                    channel.send(`Exemple : ${config.prefixM}setprotectedname <@user> <name>`);
                 }
             }, ["Généraux", "Salade de fruits"]),
 
@@ -416,9 +476,9 @@ function loadCommands() {
 
         new Command("m", "config",
             "` : Envoie le fichier de config.",
-            (member) => {
+            async (member) => {
                 // Send beautified JSON with syntax highlighting
-                member.send("```json\n" + JSON.stringify(config, null, 4) + "```");
+                await member.send("```json\n" + JSON.stringify(config, null, 4) + "```");
                 return true;
             }, [], config.devs),
 
@@ -487,16 +547,17 @@ bot.on("message", message => {
 
     // Run message as command, if it exactly matches a command name (case insensitive)
     for (let com of commands) {
-        if (content.toLowerCase().startsWith(com.prefix + com.name)) {
+        if (content.toLowerCase() === com.prefix + com.name
+            || content.toLowerCase().startsWith(com.prefix + com.name + " ")) {
             com.run(message);
             break;
         }
     }
 
-    // Delete @everyone sent by random people
+    // Delete @everyone sent by random people (in every channel)
     if (content.includes("@everyone")
         && !memberRole(member, "Généraux", "Salade de fruits")) {
-        warnMember(member);
+        warnMember(member, "Message contenant @​everyone");
         channel.send(member.toString() + "\n" +
             "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
             "*@​everyone is reserved for admins! Don't try to use it.*");
@@ -509,33 +570,36 @@ bot.on("message", message => {
     let highestCount = Math.max(...Object.values(tally));
 
     if (!config.ignoredWarn.includes(channel.name) && !memberRole(member, "Généraux")) {
-        let warn = "";
+        let warn = "", reason = "";
 
         if (slowMode.isPrevented(message)) {
             author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.")
                 .catch(console.error);
             message.delete()
                 .catch(console.error);
-
         }
         // Messages with more than 1000 chars
-        else if (content.length >= 1000)
+        else if (content.length >= 1000) {
             warn = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
                 "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
-
+            reason = "Message > 1000 caractères";
+        }
         // Messages which have been sent multiple times
-        else if (message.attachments.size === 0 && SM.isSpam(content))
+        else if (message.attachments.size === 0 && SM.isSpam(content)) {
             warn = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
                 "*Spam prevention - don't repeat yourself. (warn)*";
-
+            reason = "Message spam";
+        }
         // Messages with a repeating char for 3/4 of it
-        else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75)
+        else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
             warn = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
                 "*Flood prevention - don't repeat yourself. (warn)*";
+            reason = "Message avec répétition";
+        }
 
         // If any of these has been found, warn the user and delete the message
         if (warn !== "") {
-            warnMember(member);
+            warnMember(member, reason);
             channel.send(member.toString() + "\n" + warn);
             message.delete()
                 .catch(console.error);
