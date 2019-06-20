@@ -149,17 +149,13 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
-    if (totalCount > 650)
-        console.log(`total: ${totalCount}\nhas role: ${!memberRole(member, "Guide frénétique")}\nnow: ${Date.now()}  ---  joined + 30d: ${member.joinedTimestamp + "30d".toMs()}\n`);
-
     // Give role to people above the treshold (and who joined at lease 30 days ago) if they don't have it
     if (totalCount >= config.minMsgCount
         && !memberRole(member, "Guide frénétique")
-        && Date.now() > member.joinedTimestamp + "30d".toMs()) {
-        console.log("adding role to " + member.user.tag);
+        && Date.now() > member.joinedTimestamp + "30d".toMs())
         member.addRole(getRole("Guide frénétique"));
-        // Remove role from people under the treshold if they have it
-    } else if (totalCount < config.minMsgCount
+    // Remove role from people under the treshold if they have it
+    else if (totalCount < config.minMsgCount
         && memberRole(member, "Guide frénétique"))
         member.removeRole(getRole("Guide frénétique"));
 }
