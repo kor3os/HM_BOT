@@ -149,13 +149,17 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
 
+    if (totalCount > 650)
+        console.log(`total: ${totalCount}\nhas role: ${!memberRole(member, "Guide frénétique")}\nnow: ${Date.now()}  ---  joined + 30d: ${member.joinedTimestamp + "30d".toMs()}\n`);
+
     // Give role to people above the treshold (and who joined at lease 30 days ago) if they don't have it
     if (totalCount >= config.minMsgCount
         && !memberRole(member, "Guide frénétique")
-        && Date.now() > member.joinedTimestamp + "30d".toMs())
+        && Date.now() > member.joinedTimestamp + "30d".toMs()) {
+        console.log("adding role to " + member.user.tag);
         member.addRole(getRole("Guide frénétique"));
-    // Remove role from people under the treshold if they have it
-    else if (totalCount < config.minMsgCount
+        // Remove role from people under the treshold if they have it
+    } else if (totalCount < config.minMsgCount
         && memberRole(member, "Guide frénétique"))
         member.removeRole(getRole("Guide frénétique"));
 }
@@ -185,14 +189,36 @@ class Command {
 
     run(message) {
         // Get various useful stuff
-        const {member, channel, mentions, content, author} = message;
+        const {member, channel, content, author} = message;
+        // Get args separated by spaces
         let args = content.substring(this.prefix.length).split(" ").slice(1);
+
+        // Get member argument (depending on the message, mostly first argument parsed)
+        let memberArg;
+
+        // If there are mentions, get first mention
+        if (message.mentions.users.length > 0)
+            memberArg = message.mentions.members[0];
+        else if (args[0] != null) {
+            // Else if the first argument is numbers, treat it as an id
+            if (args[0].match(/^[0-9]+$/))
+                memberArg = hentaiMoutarde.members.get(args[0]);
+            // Else, find a user with an username matching perfectly the first arg...
+            else if (args[0])
+                memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase() === args[0].toLowerCase() ||
+                    (mem.nickname && mem.nickname.toLowerCase() === args[0].toLowerCase()));
+
+            // ... or one that contains the first arg.
+            if (memberArg == null)
+                memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase().includes(args[0].toLowerCase()) ||
+                    (mem.nickname && mem.nickname.toLowerCase().includes(args[0].toLowerCase())));
+        }
 
         // If user has one of this.roles OR is in this.users OR both are empty ...
         if (memberRole(member, ...this.roles) || this.users.includes(author.id)
             || this.users.length === 0 && this.roles.length === 0) {
             // Run the command function. If return is truthy, react to the command for user feedback
-            if (this.fun(member, channel, args, mentions, content, author, message))
+            if (this.fun(member, channel, args, memberArg, content, author, message))
                 message.react("587024299639046146");
         } else if (this.warnUse) {
             let msg = "";
@@ -285,14 +311,14 @@ function loadCommands() {
 
         new Command("u", "score",
             "[mention]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
-            (member, channel, args, mentions) => {
-                // First mention, or by default the user sending the message
-                let user = (mentions.members.size > 0 ? mentions.members.array()[0] : member);
-                let usrData = msgCount.users[user];
+            (member, channel, args, memberArg) => {
+                // By default the user sending the message
+                if (memberArg == null) memberArg = member;
+                let usrData = msgCount.users[memberArg];
 
                 if (usrData != null) {
                     // Get various stats from user data
-                    let rank = topUsers().map(e => e[0]).indexOf(user.toString()) + 1,
+                    let rank = topUsers().map(e => e[0]).indexOf(memberArg.toString()) + 1,
                         tot = usrData.counts.reduce((a, b) => a + b, 0),
                         avg = Math.round(tot / usrData.counts.length * 100) / 100,
                         last = usrData.counts[0];
@@ -300,11 +326,11 @@ function loadCommands() {
                     channel.send({
                         embed: new Discord.RichEmbed()
                             .setColor(16777067)
-                            .setTitle(`Score de ${user.user.tag} (${config.daysMsgCount} jours)`)
+                            .setTitle(`Score de ${memberArg.user.tag} (${config.daysMsgCount} jours)`)
                             .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMessages du jour : **${last}**`)
                     });
                 } else {
-                    channel.send(`Pas de données pour l'utilisateur ${user.user.tag}`);
+                    channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
                 }
             }),
 
@@ -332,7 +358,7 @@ function loadCommands() {
 
         new Command("m", "warn",
             "<@user> [reason]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.",
-            (member, channel, args, mentions) => mentions.members.forEach(warnMember),
+            (member, channel, args, memberArg) => warnMember(memberArg),
             ["Généraux", "Salade de fruits"]),
 
         new Command("m", "slowmode",
