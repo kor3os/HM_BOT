@@ -197,7 +197,7 @@ class Command {
         let memberArg;
 
         // If there are mentions, get first mention
-        if (message.mentions.users.length > 0)
+        if (message.mentions.users.size > 0)
             memberArg = message.mentions.members[0];
         else if (args[0] != null) {
             // Else if the first argument is numbers, treat it as an id
