@@ -198,7 +198,7 @@ class Command {
 
         // If there are mentions, get first mention
         if (message.mentions.users.size > 0)
-            memberArg = message.mentions.members[0];
+            memberArg = message.mentions.members.first();
         else if (args[0] != null) {
             // Else if the first argument is numbers, treat it as an id
             if (args[0].match(/^[0-9]+$/))
@@ -388,25 +388,31 @@ function loadCommands() {
         new Command("m", "kick",
             "<@user> [raison]` : Kick un utilisateur.",
             async (member, channel, args, memberArg) => {
-                await memberArg.kick({days: 1, reason: args.slice(1).join(" ") || null});
-                return true;
+                if (memberArg) {
+                    await memberArg.kick({days: 1, reason: args.slice(1).join(" ") || null});
+                    return true;
+                }
             },
             ["Généraux", "Salade de fruits"]),
 
         new Command("m", "ban",
             "<@user> [raison]` : Ban un utilisateur, et supprime 1 jour de messages.",
             async (member, channel, args, memberArg) => {
-                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null});
-                return true;
+                if (memberArg) {
+                    await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null});
+                    return true;
+                }
             },
             ["Généraux", "Salade de fruits"]),
 
         new Command("m", "softban",
             "<@user> [raison]` : Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
             async (member, channel, args, memberArg) => {
-                await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
-                    .then(member => hentaiMoutarde.unban(member));
-                return true;
+                if (memberArg) {
+                    await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
+                        .then(member => hentaiMoutarde.unban(member));
+                    return true;
+                }
             },
             ["Généraux", "Salade de fruits"]),
 
@@ -633,6 +639,7 @@ bot.on("guildMemberAdd", member => {
             config.welcome
                 .replace(/\[mention]/gi, member.toString())
                 .replace(/\[pseudo]/gi, member.user.username)
+                .replace(/#([a-z\-_]+)/g, () => {})
         );
     }
 });
