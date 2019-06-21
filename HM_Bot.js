@@ -374,7 +374,7 @@ function loadCommands() {
                                 .setColor(16777067)
                                 .setTitle(`Warns de l'utilisateur ${memberArg.user.tag}`)
                                 .setDescription(config.warns[memberArg].map(reason => "• " + (reason || "Aucune raison")).join("\n"))
-                                .setFooter(memberArg.user.id, memberArg.user.avatar)
+                                .setFooter(memberArg.user.id, memberArg.user.avatarURL)
                         });
                     } else {
                         channel.send(`Aucun warns pour l'utilisateur ${memberArg.user.tag}`);
@@ -475,7 +475,7 @@ function loadCommands() {
                 return true;
             }, [], config.devs),
 
-        new Command("m", "reload",
+        new Command("m", "restart",
             "` : Update le bot.",
             () => {
                 WHL.update();
