@@ -372,7 +372,9 @@ function loadCommands() {
                         channel.send({
                             embed: new Discord.RichEmbed()
                                 .setColor(16777067)
+                                .setTitle(`Warns de l'utilisateur ${memberArg.user.tag}`)
                                 .setDescription(config.warns[memberArg].map(reason => "• " + (reason || "Aucune raison")).join("\n"))
+                                .setFooter(memberArg.user.id, memberArg.user.avatar)
                         });
                     } else {
                         channel.send(`Aucun warns pour l'utilisateur ${memberArg.user.tag}`);
