@@ -639,7 +639,7 @@ bot.on("guildMemberAdd", member => {
             config.welcome
                 .replace(/\[mention]/gi, member.toString())
                 .replace(/\[pseudo]/gi, member.user.username)
-                .replace(/#([a-z\-_]+)/g, (_, name) => "" + bot.channels.find(chan => chan.name === name))
+                .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
         );
     }
 });
