@@ -97,7 +97,7 @@ function warnMember(member, reason = "") {
 
     // If he isn't warned, create an entry with one reason
     if (!config.warns[member.toString()]) {
-        config.warns[member.toString()] = [raison];
+        config.warns[member.toString()] = [reason];
     } else {
         // Else add a new warn reason
         config.warns[member.toString()].push(reason);
