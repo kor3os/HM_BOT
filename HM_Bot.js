@@ -444,12 +444,21 @@ function loadCommands() {
             "<@user> <nom>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
             (member, channel, args) => {
                 if (args[0].startsWith("<@")) {
-                    config.protectedNames.set(content.slice(21 + args[0].length), args[0].slice(2, -1));
+                    config.protectedNames[content.slice(21 + args[0].length)] = args[0].slice(2, -1);
                     saveJson(config, "config", true);
                     return true;
                 } else {
                     channel.send(`Exemple : ${config.prefixM}setprotectedname <@user> <name>`);
                 }
+            }, ["Généraux", "Salade de fruits"]),
+
+        new Command("m", "welcome",
+            "<message>` : Change le message de bienvenue. Possibilité d'utiliser " +
+            "[mention] pour insérer une mention du nouvel utilisateur et [pseudo] pour insérer son pseudo.",
+            (member, channel, args) => {
+                config.welcome = args.join(" ");
+                saveJson(config, "config", true);
+                return true;
             }, ["Généraux", "Salade de fruits"]),
 
         new Command("m", "reload",
@@ -619,6 +628,12 @@ bot.on("guildMemberAdd", member => {
             "Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.\n" +
             "\n*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.\n" +
             "If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*");
+    } else {
+        bot.channels.get("295533374016192514").send(
+            config.welcome
+                .replace(/\[mention]/gi, member.toString())
+                .replace(/\[pseudo]/gi, member.user.username)
+        );
     }
 });
 
