@@ -562,56 +562,59 @@ bot.on("message", message => {
         }
     }
 
-    // Delete @everyone sent by random people (in every channel)
-    if (content.includes("@everyone")
-        && !memberRole(member, "Généraux", "Salade de fruits")) {
-        warnMember(member, "Message contenant @​everyone");
-        channel.send(member.toString() + "\n" +
-            "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
-            "*@​everyone is reserved for admins! Don't try to use it.*");
-        message.delete()
-            .catch(console.error);
+    let warnMsg = "", reason = "";
+
+    if (!memberRole(member, "Généraux", "Salade de fruits")) {
+        if (content.includes("@everyone")) {
+            // Delete @everyone sent by random people (in every channel)
+            warnMsg = "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
+                "*@​everyone is reserved for admins! Don't try to use it.*";
+            reason ="Message contenant @​everyone";
+        } else if (content.match(/discord\.gg\/[^ ]+/)) {
+            // Delete discord invitation links and mute user
+            reason = "Invitation discord";
+            member.addRole(getRole("GOULAG"));
+        }
+
+        // Count chars and get most used one
+        let tally = content.charTally();
+        let highestCount = Math.max(...Object.values(tally));
+
+        if (!config.ignoredWarn.includes(channel.name)) {
+            if (slowMode.isPrevented(message)) {
+                author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.")
+                    .catch(console.error);
+                message.delete()
+                    .catch(console.error);
+            }
+            // Messages with more than 1000 chars
+            else if (content.length >= 1000) {
+                warnMsg = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
+                    "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
+                reason = "Message > 1000 caractères";
+            }
+            // Messages which have been sent multiple times
+            else if (message.attachments.size === 0 && SM.isSpam(content)) {
+                warnMsg = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
+                    "*Spam prevention - don't repeat yourself. (warn)*";
+                reason = "Message spam";
+            }
+            // Messages with a repeating char for 3/4 of it
+            else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
+                warnMsg = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
+                    "*Flood prevention - don't repeat yourself. (warn)*";
+                reason = "Message avec répétition";
+            }
+        }
     }
 
-    // Count chars and get most used one
-    let tally = content.charTally();
-    let highestCount = Math.max(...Object.values(tally));
-
-    if (!config.ignoredWarn.includes(channel.name) && !memberRole(member, "Généraux")) {
-        let warn = "", reason = "";
-
-        if (slowMode.isPrevented(message)) {
-            author.send("Le channel dans lequel vous essayez de parler est en slowmode, merci de patienter avant de poster à nouveau.")
-                .catch(console.error);
-            message.delete()
-                .catch(console.error);
-        }
-        // Messages with more than 1000 chars
-        else if (content.length >= 1000) {
-            warn = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
-                "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
-            reason = "Message > 1000 caractères";
-        }
-        // Messages which have been sent multiple times
-        else if (message.attachments.size === 0 && SM.isSpam(content)) {
-            warn = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
-                "*Spam prevention - don't repeat yourself. (warn)*";
-            reason = "Message spam";
-        }
-        // Messages with a repeating char for 3/4 of it
-        else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
-            warn = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
-                "*Flood prevention - don't repeat yourself. (warn)*";
-            reason = "Message avec répétition";
-        }
-
-        // If any of these has been found, warn the user and delete the message
-        if (warn !== "") {
-            warnMember(member, reason);
-            channel.send(member.toString() + "\n" + warn);
-            message.delete()
-                .catch(console.error);
-        }
+    // If any of these has been found, warn the user and delete the message
+    if (reason !== "") {
+        warnMember(member, reason);
+        if (warnMsg !== "")
+            channel.send(member.toString() + "\n" + warnMsg);
+        message.delete()
+            .catch(console.error);
     }
 });
 
