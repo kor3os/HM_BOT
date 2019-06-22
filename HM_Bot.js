@@ -641,6 +641,7 @@ bot.on("guildMemberAdd", member => {
                 .replace(/\[pseudo]/gi, member.user.username)
                 .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
         );
+        member.addRole(getRole("secte nsfw"));
     }
 });
 
