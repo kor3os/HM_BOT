@@ -234,6 +234,21 @@ class Command {
     }
 }
 
+const modRoles = ["Généraux", "Salade de fruits"];
+
+class ModAction extends Command {
+    constructor(name, desc, fun) {
+        super("m", name, "<@user|user_id> [raison]` : " + desc,
+            async (member, channel, args, memberArg) => {
+                if (memberArg != null) {
+                    let reason = args.slice(1).join(" ") || null;
+                    await fun(memberArg, reason);
+                    channel.send(`**${memberArg.user.tag}** a été ${name} ` + (reason ? `pour la raison "${reason}".` : "sans raison explicite."));
+                }
+            }, modRoles);
+    }
+}
+
 let commands;
 
 function loadCommands() {
@@ -356,14 +371,6 @@ function loadCommands() {
                 return true;
             }, ["Généraux", "Salade de fruits"]),
 
-        new Command("m", "warn",
-            "<@user> [raison]` : Ajoute un warning a user. Reason est inutile et sert juste a faire peur.",
-            async (member, channel, args, memberArg) => {
-                await warnMember(memberArg, args.slice(1).join(" "));
-                return true;
-            },
-            ["Généraux", "Salade de fruits"]),
-
         new Command("m", "warns",
             "<@user>` : Affiche les warns d'un utilisateur.",
             async (member, channel, args, memberArg) => {
@@ -382,39 +389,21 @@ function loadCommands() {
                 } else {
                     channel.send(`Exemple : ${config.prefixM}warns Dont#9718`);
                 }
-            },
-            ["Généraux", "Salade de fruits"]),
+            }, modRoles),
 
-        new Command("m", "kick",
-            "<@user> [raison]` : Kick un utilisateur.",
-            async (member, channel, args, memberArg) => {
-                if (memberArg) {
-                    await memberArg.kick({days: 1, reason: args.slice(1).join(" ") || null});
-                    return true;
-                }
-            },
-            ["Généraux", "Salade de fruits"]),
+        new ModAction("warn", "Ajoute un warning a user, avec la raison [raison].",
+            warnMember),
 
-        new Command("m", "ban",
-            "<@user> [raison]` : Ban un utilisateur, et supprime 1 jour de messages.",
-            async (member, channel, args, memberArg) => {
-                if (memberArg) {
-                    await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null});
-                    return true;
-                }
-            },
-            ["Généraux", "Salade de fruits"]),
+        new ModAction("kick", "Kick un utilisateur.",
+            async (memberArg, reason) => await memberArg.kick(reason)),
 
-        new Command("m", "softban",
-            "<@user> [raison]` : Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
-            async (member, channel, args, memberArg) => {
-                if (memberArg) {
-                    await memberArg.ban({days: 1, reason: args.slice(1).join(" ") || null})
-                        .then(member => hentaiMoutarde.unban(member));
-                    return true;
-                }
-            },
-            ["Généraux", "Salade de fruits"]),
+        new ModAction("softban", "Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
+            async (memberArg, reason) =>
+                await memberArg.ban({days: 1, reason})
+                    .then(member => hentaiMoutarde.unban(member))),
+
+        new ModAction("ban", "Ban un utilisateur, et supprime 1 jour de messages.",
+            async (memberArg, reason) => await memberArg.ban({days: 1, reason})),
 
         new Command("m", "slowmode",
             "<temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.",
@@ -433,7 +422,7 @@ function loadCommands() {
                 } catch (e) {
                     channel.send("Erreur d'affectation du slowmode.");
                 }
-            }, ["Généraux", "Salade de fruits"]),
+            }, modRoles),
 
         new Command("m", "spamtimeout",
             "<temps>[h/m/s/ms]` : Change la duree pendant laquelle deux messages identiques ne peuvent pas etre postés (default: 30s)",
@@ -444,7 +433,7 @@ function loadCommands() {
                 } catch (e) {
                     channel.send("Erreur d'affectation du timeout");
                 }
-            }, ["Généraux", "Salade de fruits"]),
+            }, modRoles),
 
         new Command("m", "setprotectedname",
             "<@user> <nom>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
@@ -456,7 +445,7 @@ function loadCommands() {
                 } else {
                     channel.send(`Exemple : ${config.prefixM}setprotectedname <@user> <name>`);
                 }
-            }, ["Généraux", "Salade de fruits"]),
+            }, modRoles),
 
         new Command("m", "welcome",
             "<message>` : Change le message de bienvenue. Possibilité d'utiliser " +
@@ -465,7 +454,7 @@ function loadCommands() {
                 config.welcome = args.join(" ");
                 saveJson(config, "config", true);
                 return true;
-            }, ["Généraux", "Salade de fruits"]),
+            }, modRoles),
 
         new Command("m", "reload",
             "` : Recharge le fichier de config.",
@@ -508,7 +497,7 @@ function loadCommands() {
                         .addField("Commandes développeur",
                             Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === config.devs.length)))
                 });
-            }, ["Généraux", "Salade de fruits"], config.devs)
+            }, modRoles, config.devs)
     ];
 }
 
@@ -569,7 +558,7 @@ bot.on("message", message => {
             // Delete @everyone sent by random people (in every channel)
             warnMsg = "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
                 "*@​everyone is reserved for admins! Don't try to use it.*";
-            reason ="Message contenant @​everyone";
+            reason = "Message contenant @​everyone";
         } else if (content.match(/discord\.gg\/[^ ]+/)) {
             // Delete discord invitation links and mute user
             reason = "Invitation discord";
