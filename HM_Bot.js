@@ -57,6 +57,10 @@ function saveJson(content, name, beautify = false) {
     fs.writeFileSync(name + ".json", contentJson, "utf-8");
 }
 
+function saveConfig() {
+    saveJson(config, "config", true);
+}
+
 // UTILITY
 
 // Count the number of occurrences of each character in the string.
@@ -86,9 +90,14 @@ const memberRole = (member, ...roles) => member.roles.find(role => roles.include
 // Get a role from a guild
 const getRole = name => hentaiMoutarde.roles.find(val => val.name === name);
 
-function cleanUpColorRoles() {
+function cleanupColorRoles() {
     hentaiMoutarde.roles.filter(role => role.name.includes("dncolor") && role.members.size === 0)
         .forEach(role => role.delete());
+}
+
+function cleanupTempActions() {
+    config.tempActions = config.tempActions.filter(action => action[2] > Date.now());
+    saveConfig();
 }
 
 // Warn a member and mute him if necessary
@@ -110,7 +119,7 @@ function warnMember(member, reason = "") {
                 .catch(console.error);
         }
     }
-    saveJson(config, "config", true);
+    saveConfig();
 }
 
 // Message count (Guide frénétique)
@@ -218,7 +227,7 @@ class Command {
         if (memberRole(member, ...this.roles) || this.users.includes(author.id)
             || this.users.length === 0 && this.roles.length === 0) {
             // Run the command function. If return is truthy, react to the command for user feedback
-            if (this.fun(member, channel, args, memberArg, content, author, message))
+            if (this.fun(member, channel, args, memberArg, content, author, message) === true)
                 message.react("587024299639046146"); // :MoutardeKemono:
         } else if (this.warnUse) {
             let msg = "";
@@ -237,13 +246,20 @@ class Command {
 const modRoles = ["Généraux", "Salade de fruits"];
 
 class ModAction extends Command {
-    constructor(name, desc, fun) {
-        super("m", name, "<@user|user_id> [raison]` : " + desc,
+    constructor(name, desc, fun, timed = false) {
+        super("m", name, "<@user|user_id> " + (timed ? "<time> " : "") + " [raison]` : " + desc,
             async (member, channel, args, memberArg) => {
                 if (memberArg != null) {
-                    let reason = args.slice(1).join(" ") || null;
-                    await fun(memberArg, reason);
-                    channel.send(`**${memberArg.user.tag}** a été ${name} ` + (reason ? `pour la raison "${reason}".` : "sans raison explicite."));
+                    let time, i = 1;
+                    if (timed) {
+                        time = args[1].toMs();
+                        i++;
+                    }
+                    let reason = args.slice(i).join(" ");
+
+                    await fun(memberArg, reason, time);
+                    channel.send(`**${memberArg.user.tag}** a été ${name} `
+                        + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
                 }
             }, modRoles);
     }
@@ -267,7 +283,7 @@ function loadCommands() {
 
                     // If reset is passed, simply clean up roles to remove it entirely
                     if (args[0] === "reset") {
-                        cleanUpColorRoles();
+                        cleanupColorRoles();
                     } else {
                         role = getRole("dncolor" + args[0]);
 
@@ -284,7 +300,7 @@ function loadCommands() {
                                     mentionable: false
                                 })
                                 .then(role => member.addRole(role)
-                                    .then(() => cleanUpColorRoles())
+                                    .then(() => cleanupColorRoles())
                                     .catch(console.error))
                                 .catch(console.error);
                         }
@@ -367,7 +383,7 @@ function loadCommands() {
             (member, channel, args) => {
                 bot.user.setActivity(args[0]);
                 config.game = args[0];
-                saveJson(config, "config", true);
+                saveConfig();
                 return true;
             }, ["Généraux", "Salade de fruits"]),
 
@@ -394,6 +410,27 @@ function loadCommands() {
         new ModAction("warn", "Ajoute un warning a user, avec la raison [raison].",
             warnMember),
 
+        new ModAction("mute", "Mute un user pendant [temps].",
+            async (memberArg, reason, time) => {
+                config.tempActions.push(["mute", memberArg.user.id, Date.now() + time]);
+                saveConfig();
+                await memberArg.addRole(getRole("Muted"));
+                // Remove role after [time] ms
+                setInterval(() => {
+                    memberArg.removeRole(getRole("Muted"));
+                    cleanupTempActions();
+                }, time);
+            }, true),
+
+        new ModAction("unmute", "Démute un utilisateur.",
+            async (memberArg) => {
+                // Remove unmute action
+                config.tempActions = config.tempActions.filter(action => action[0] === "mute" && action[1] === memberArg.user.id);
+                saveConfig();
+
+                memberArg.removeRole(getRole("Muted"));
+            }),
+
         new ModAction("kick", "Kick un utilisateur.",
             async (memberArg, reason) => await memberArg.kick(reason)),
 
@@ -402,8 +439,37 @@ function loadCommands() {
                 await memberArg.ban({days: 1, reason})
                     .then(member => hentaiMoutarde.unban(member))),
 
+        new ModAction("tempban", "Ban un utilisateur pendant un certain temps. Supprime un jour de messages.",
+            async (memberArg, reason, time) => {
+                config.tempActions.push(["ban", memberArg.user.id, Date.now() + time]);
+                saveConfig();
+                await memberArg.ban({days: 1, reason});
+                setInterval(() => {
+                    hentaiMoutarde.unban(memberArg);
+                    cleanupTempActions();
+                }, time);
+            }, true),
+
         new ModAction("ban", "Ban un utilisateur, et supprime 1 jour de messages.",
-            async (memberArg, reason) => await memberArg.ban({days: 1, reason})),
+            async (memberArg, reason) => {
+                await memberArg.ban({days: 1, reason});
+                config.tempActions = config.tempActions.filter(action => action[1] === memberArg.user.id);
+                saveConfig();
+            }),
+
+        new Command("m", "unban",
+            "Déban un utilisateur.",
+            async (member, channel, args) => {
+                let user = bot.users.get(args[0]),
+                    reason = args.slice(1).join(" ");
+
+                config.tempActions = config.tempActions.filter(action => action[0] === "ban" && action[1] === memberArg.user.id);
+                saveConfig();
+
+                await hentaiMoutarde.unban(args[0]);
+                channel.send(`**${user ? user.tag : args[0]}** a été unban `
+                    + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
+            }),
 
         new Command("m", "slowmode",
             "<temps>[h/m/s/ms]` (default: s) : Crée ou modifie un slowmode dans le channel actuel.",
@@ -440,7 +506,7 @@ function loadCommands() {
             (member, channel, args) => {
                 if (args[0].startsWith("<@")) {
                     config.protectedNames[content.slice(21 + args[0].length)] = args[0].slice(2, -1);
-                    saveJson(config, "config", true);
+                    saveConfig();
                     return true;
                 } else {
                     channel.send(`Exemple : ${config.prefixM}setprotectedname <@user> <name>`);
@@ -452,7 +518,7 @@ function loadCommands() {
             "[mention] pour insérer une mention du nouvel utilisateur et [pseudo] pour insérer son pseudo.",
             (member, channel, args) => {
                 config.welcome = args.join(" ");
-                saveJson(config, "config", true);
+                saveConfig();
                 return true;
             }, modRoles),
 
@@ -467,7 +533,7 @@ function loadCommands() {
             "` : Change la regex de goulag automatique au join.",
             (member, channel, args) => {
                 config.autoGoulag = args[0];
-                saveJson(config, "config", true);
+                saveConfig();
                 return true;
             }, [], config.devs),
 
@@ -527,6 +593,31 @@ bot.once("ready", () => {
     // Get bump channel and bump
     bumpChannel = bot.channels.get("311496070074990593");
     dlmBump();
+
+    // Load timeouts for temporary mod actions
+    config.tempActions.forEach(action => {
+        let fun;
+
+        if (action[0] === "ban")
+            fun = () => hentaiMoutarde.unban(action[1]);
+        else if (action[0] === "mute")
+            fun = () => {
+                let mem = hentaiMoutarde.members.get(action[1]);
+                if (mem) mem.removeRole(getRole("Muted"));
+            };
+
+        // If time has passed, run straight away
+        if (action[2] <= Date.now()) {
+            fun();
+            cleanupTempActions();
+        } else {
+            // Else set a timeout
+            setTimeout(() => {
+                fun();
+                cleanupTempActions();
+            }, action[2] - Date.now());
+        }
+    });
 });
 
 // Message handling
