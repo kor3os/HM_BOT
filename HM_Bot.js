@@ -180,6 +180,32 @@ function topUsers() {
         .sort((e1, e2) => e2[1] - e1[1]);
 }
 
+class MoutardeEmbed extends Discord.RichEmbed {
+    constructor() {
+        super().setColor(16777067);
+    }
+
+    addHelpFields(name, commands) {
+        let fields = [""],
+            i = 0;
+
+        for (let com of commands) {
+            if ((fields[i] + "\n" + com.helpString).length > 1024) {
+                fields.push("");
+                i++;
+            }
+            fields[i] = fields[i] + "\n" + com.helpString;
+        }
+
+        for (let field of fields) {
+            this.addField(name, field);
+            name = "…";
+        }
+
+        return this;
+    }
+}
+
 class Command {
     constructor(prefix, name, desc, fun, roles = [], users = [], warnUse = false) {
         this.prefix = (prefix === "u" ? config.prefixU : config.prefixM);
@@ -191,9 +217,8 @@ class Command {
         this.warnUse = warnUse;
     }
 
-    // Make help string from array of commands
-    static makeHelp(arr) {
-        return arr.map(com => "• `" + com.prefix + com.name + " " + com.desc).join("\n");
+    get helpString() {
+        return "• `" + this.prefix + this.name + " " + this.desc;
     }
 
     run(message) {
@@ -355,8 +380,7 @@ function loadCommands() {
                         last = usrData.counts[0];
 
                     channel.send({
-                        embed: new Discord.RichEmbed()
-                            .setColor(16777067)
+                        embed: new MoutardeEmbed()
                             .setTitle(`Score de ${memberArg.user.tag} (${config.daysMsgCount} jours)`)
                             .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMessages du jour : **${last}**`)
                     });
@@ -369,12 +393,11 @@ function loadCommands() {
             "` : Affiche ce message d'aide.",
             (member, channel) => {
                 channel.send({
-                    embed: new Discord.RichEmbed()
-                        .setColor(16777067)
-                        .addField("Commandes utilisateur",
-                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixU && com.roles.length === 0)))
-                        .addField("Commandes donateur",
-                            Command.makeHelp(commands.filter(com => com.roles.length === 1 && com.roles[0] === "Donateur")))
+                    embed: new MoutardeEmbed()
+                        .addHelpFields("Commandes utilisateur",
+                            commands.filter(com => com.prefix === config.prefixU && com.roles.length === 0))
+                        .addHelpFields("Commandes donateur",
+                            commands.filter(com => com.roles.length === 1 && com.roles[0] === "Donateur"))
                 });
             }),
 
@@ -393,8 +416,7 @@ function loadCommands() {
                 if (memberArg != null) {
                     if (config.warns[memberArg] != null) {
                         channel.send({
-                            embed: new Discord.RichEmbed()
-                                .setColor(16777067)
+                            embed: new MoutardeEmbed()
                                 .setTitle(`Warns de l'utilisateur ${memberArg.user.tag}`)
                                 .setDescription(config.warns[memberArg].map(reason => "• " + (reason || "Aucune raison")).join("\n"))
                                 .setFooter(memberArg.user.id, memberArg.user.avatarURL)
@@ -556,12 +578,11 @@ function loadCommands() {
             "` : Affiche ce message d'aide.",
             (member, channel) => {
                 channel.send({
-                    embed: new Discord.RichEmbed()
-                        .setColor(16777067)
-                        .addField("Commandes modérateur",
-                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.roles.length === 2)))
-                        .addField("Commandes développeur",
-                            Command.makeHelp(commands.filter(com => com.prefix === config.prefixM && com.users.length === config.devs.length)))
+                    embed: new MoutardeEmbed()
+                        .addHelpFields("Commandes modérateur",
+                            commands.filter(com => com.prefix === config.prefixM && com.roles.length === 2))
+                        .addHelpFields("Commandes développeur",
+                            commands.filter(com => com.prefix === config.prefixM && com.users.length === config.devs.length))
                 });
             }, modRoles, config.devs)
     ];
