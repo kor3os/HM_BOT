@@ -71,11 +71,23 @@ String.prototype.charTally = function charTally() {
     }, {});
 };
 
+const units = {
+    "ms": 1,
+    "s(ec(onde?)?s?)": 1000,
+    "m(in(ute)?s?)?": 60000,
+    "h((our|eure)s?)?": 3600000,
+    "(d(ays?)?|j(ours?)?)": 86400000
+};
+
 String.prototype.toMs = function(unit = "ms") {
     let t = parseInt(this.match(/([0-9]+)/)[1]);
     let u = this.match(/[0-9]+([a-z]*)/i)[1] || unit;
 
-    return {ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000}[u] * t;
+    for (let regex in units) {
+        if (u.match(new RegExp("^" + regex + "$")))
+            return t * units[regex];
+    }
+    return 0;
 };
 
 // Returns today's date
@@ -436,10 +448,10 @@ function loadCommands() {
             async (memberArg, reason, time) => {
                 config.tempActions.push(["mute", memberArg.user.id, Date.now() + time]);
                 saveConfig();
-                await memberArg.addRole(getRole("Muted"));
+                await memberArg.addRole(getRole("GOULAG"));
                 // Remove role after [time] ms
                 setInterval(() => {
-                    memberArg.removeRole(getRole("Muted"));
+                    memberArg.removeRole(getRole("GOULAG"));
                     cleanupTempActions();
                 }, time);
             }, true),
@@ -450,7 +462,7 @@ function loadCommands() {
                 config.tempActions = config.tempActions.filter(action => action[0] === "mute" && action[1] === memberArg.user.id);
                 saveConfig();
 
-                memberArg.removeRole(getRole("Muted"));
+                memberArg.removeRole(getRole("GOULAG"));
             }),
 
         new ModAction("kick", "Kick un utilisateur.",
@@ -624,7 +636,7 @@ bot.once("ready", () => {
         else if (action[0] === "mute")
             fun = () => {
                 let mem = hentaiMoutarde.members.get(action[1]);
-                if (mem) mem.removeRole(getRole("Muted"));
+                if (mem) mem.removeRole(getRole("GOULAG"));
             };
 
         // If time has passed, run straight away
