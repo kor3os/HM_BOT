@@ -306,6 +306,19 @@ let commands;
 
 function loadCommands() {
     commands = [
+        new Command("u", "pap",
+            "` : Remercie pap.",
+            (member, channel) => {
+                config.pap++;
+                saveConfig();
+
+                channel.send({
+                    embed: new MoutardeEmbed()
+                        .setTitle(`${member.nickname || member.user.username} remercie pap !`)
+                        .setDescription(`Pap a été remercié ${config.pap} fois.`)
+                });
+            }),
+
         new Command("u", "color",
             `<code_couleur/reset>\` : Change la couleur de votre nom au code couleur choisi. (exemple: \`${config.prefixU}color #FF4200\`)`,
             (member, channel, args) => {
