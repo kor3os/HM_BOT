@@ -19,6 +19,7 @@
   "homepage": "https://github.com/themoonisacheese/HM_BOT#readme",
   "dependencies": {
     "discord.js": "^11.5.1",
+    "journalctl": "^1.0.0",
     "nodemon": "^1.19.1"
   }
 }

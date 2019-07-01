@@ -6,10 +6,9 @@
 // Have any questions ? Go ask Koreos#7227 or PopahGlo#3995 over at HM!
 
 const fs = require("fs");
-
-// Launch the webhook listener
 const secrets = require("./secrets.json");
 
+// Launch the webhook listener
 const WHL = require("./webHookListener.js");
 
 WHL.callback = function() {
