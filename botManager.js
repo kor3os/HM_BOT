@@ -12,6 +12,7 @@ let logChannel;
 
 bot.on("ready", () => {
     logChannel = bot.channels.get(config.logChannel);
+    bot.user.setActivity("vec sa grande sœur")
 });
 
 bot.on("message", message => {
