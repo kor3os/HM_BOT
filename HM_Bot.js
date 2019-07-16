@@ -364,6 +364,9 @@ function loadCommands() {
         new Command("u", "top",
             `[page]\` : Affiche le top de score (nombre de message) sur les ${config.daysMsgCount} derniers jours.`,
             (member, channel, args) => {
+                //TEMP DISABLE
+                message.reply("Cette commande est temporairement inaccessible / This command is temporarly unavailable");
+                return;
                 // Get page number
                 let page = args[0] != null && args[0].match(/^[0-9]+$/) ?
                     parseInt(args[0]) : 1;
@@ -392,6 +395,8 @@ function loadCommands() {
         new Command("u", "score",
             "[@user]` : Affiche les infos relatives au score d'un utilisateur (vous par défaut).",
             (member, channel, args, memberArg) => {
+                message.reply("Cette commande est temporairement inaccessible / This command is temporarly unavailable");
+                return;
                 // By default the user sending the message
                 if (memberArg == null) memberArg = member;
                 let usrData = msgCount.users[memberArg];
