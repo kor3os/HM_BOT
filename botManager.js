@@ -10,6 +10,10 @@ const bot = new Discord.Client();
 
 let logChannel;
 
+String.prototype.redText = function() {
+    return "ml\n-" + this.replace("\n", "'\n");
+};
+
 bot.on("ready", () => {
     logChannel = bot.channels.get(config.logChannel);
 });
@@ -25,7 +29,7 @@ bot.on("message", message => {
         if (command.match(/((re)?start|stop)/)) {
             // Basic systemctl commands (start/stop/restart)
             exec(`systemctl ${command} hmbot`, (error, stdout, stderr) => {
-                channel.send(error ? "```" + stderr + "```" : "Commande executée correctement.");
+                channel.send(error ? "```" + stderr.redText() + "```" : "Commande executée correctement.");
             });
         } else if (command.match(/statut|s/)) {
             // Status query
@@ -33,10 +37,11 @@ bot.on("message", message => {
                 channel.send(`:${error ? "x" : "white_check_mark"}: Moutarde-chan est actuellement **${error ? "stoppée" : "active"}**.`);
             });
         } else if (command === "update") {
-            exec("git pull && systemctl restart hmbot", (error, stdout, stderr) => {
-                channel.send(error ? "```" + stderr + "```" : "Moutarde chan a été mise à jour.");
+            // Update the bot, just pulling from git and starting the bot if necessary
+            exec("git pull && systemctl start hmbot", (error, stdout, stderr) => {
+                channel.send(error ? "```" + stderr.redText() + "```" : "Moutarde chan a été mise à jour.");
             });
-        }  else if (command.match("logs?")) {
+        } else if (command.match("logs?")) {
             let n = 10;
 
             if (args[0] && args[0].match(/^[0-9]+$/)) {
@@ -44,8 +49,8 @@ bot.on("message", message => {
                 n = (val > 50 ? 50 : val);
             }
 
-            exec(`journalctl -fu hmbot | tail -n${n}`, (error, stdout, stderr) => {
-                channel.send("```" + (error ? stderr : stdout) + "```");
+            exec(`journalctl -u hmbot | tail -n${n}`, (error, stdout, stderr) => {
+                channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         }
     }
