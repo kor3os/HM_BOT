@@ -155,23 +155,23 @@ function updateMsgCount(member) {
     }
 
     // If user doesn't have an entry, make count array and set date
-    if (msgCount.users[member.toString()] == null) {
-        msgCount.users[member.toString()] = {
+    if (msgCount.users[member.user.id] == null) {
+        msgCount.users[member.user.id] = {
             counts: new Array(config.daysMsgCount).fill(0),
             lastMsg: Date.now()
         };
     } else {
         // Update last message date
-        msgCount.users[member.toString()].lastMsg = Date.now();
+        msgCount.users[member.user.id].lastMsg = Date.now();
     }
 
     // Add message to count and save
-    msgCount.users[member.toString()].counts[0]++;
+    msgCount.users[member.user.id].counts[0]++;
 
     saveJson(msgCount, "msgCount");
 
     // Remove/add role with total count
-    let totalCount = msgCount.users[member.toString()].counts.reduce((n, a) => a + n, 0);
+    let totalCount = msgCount.users[member.user.id].counts.reduce((n, a) => a + n, 0);
 
     // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
     if (totalCount >= config.minMsgCount
@@ -394,7 +394,7 @@ function loadCommands() {
             (member, channel, args, memberArg) => {
                 // By default the user sending the message
                 if (memberArg == null) memberArg = member;
-                let usrData = msgCount.users[memberArg];
+                let usrData = msgCount.users[memberArg.user.id];
 
                 if (usrData != null) {
                     // Get various stats from user data
@@ -673,8 +673,8 @@ bot.on("message", message => {
     if (author.bot || channel.type !== "text") return;
 
     if (!config.ignoredCount.includes(channel.name)
-        && (msgCount.users[member.toString()] == null
-            || Date.now() >= msgCount.users[member.toString()].lastMsg + config.msgDelay)) {
+        && (msgCount.users[member.user.id] == null
+            || Date.now() >= msgCount.users[member.user.id].lastMsg + config.msgDelay)) {
         updateMsgCount(member);
     }
 
