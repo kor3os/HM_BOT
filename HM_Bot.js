@@ -398,7 +398,7 @@ function loadCommands() {
 
                 if (usrData != null) {
                     // Get various stats from user data
-                    let rank = topUsers().map(e => e[0]).indexOf(memberArg.toString()) + 1,
+                    let rank = topUsers().map(e => e[0]).indexOf(memberArg.user.id) + 1,
                         tot = usrData.counts.reduce((a, b) => a + b, 0),
                         avg = Math.round(tot / usrData.counts.length * 100) / 100,
                         last = usrData.counts[0];
