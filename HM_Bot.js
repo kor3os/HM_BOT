@@ -378,7 +378,7 @@ function loadCommands() {
                         // Format string as "#Rank Username           Score" with padding + cutting
                         return s + "\n" +
                             ("#" + (i + pageN + 1)).padEnd(5) + " " +
-                            (user != null ? user.username.replace("'","").padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
+                            (user != null ? user.username.replace("'","’").padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
                             e[1];
                     }, "");
 
