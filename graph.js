@@ -1,5 +1,4 @@
 const {createCanvas} = require("canvas");
-const fs = require("fs");
 
 function canvasToBuffer(canvas) {
     return Buffer.from(canvas.toDataURL().substring(22), "base64");
