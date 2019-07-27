@@ -137,9 +137,7 @@ function warnMember(member, reason = "") {
 function scoreGoal(member) {
     let goal = config.minMsgCount;
 
-    console.log(member.roles.keyArray(), config.bonusRoles);
-
-    for (let roleId in member.roles.keyArray()) {
+    for (let roleId of member.roles.keyArray()) {
         if (config.bonusRoles.includes(roleId))
             goal -= 50;
     }
