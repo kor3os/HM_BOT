@@ -29,20 +29,20 @@ bot.on("message", message => {
 
         if (command.match(/((re)?start|stop)/)) {
             // Basic systemctl commands (start/stop/restart)
-            exec(`systemctl ${command} hmbot`, (error, stdout, stderr) => {
+            exec(`sudo systemctl ${command} hmbot`, (error, stdout, stderr) => {
                 channel.send(error ? "```" + stderr.redText() + "```" : "Commande executée correctement.");
             });
         } else if (command.match(/statut|s/)) {
             // Status query
-            exec(`systemctl is-active --quiet hmbot`, error => {
+            exec(`systemctl is-active --quiet hmbot`, error => { // FIXME (toujours considéré comme actif)
                 channel.send(`:${error ? "x" : "white_check_mark"}: Moutarde-chan est actuellement **${error ? "stoppée" : "active"}**.`);
             });
         } else if (command === "update") {
             // Update the bot, just pulling from git and starting the bot if necessary
-            exec("git pull && systemctl start hmbot", (error, stdout, stderr) => {
+            exec("sudo git pull && sudo systemctl start hmbot", (error, stdout, stderr) => {
                 channel.send(error ? "```" + stderr.redText() + "```" : "Moutarde chan a été mise à jour.");
             });
-        } else if (command.match("logs?")) {
+        } else if (command.match(/logs?/)) {
             let n = 10;
 
             if (args[0] && args[0].match(/^[0-9]+$/)) {
@@ -50,7 +50,7 @@ bot.on("message", message => {
                 n = (val > 50 ? 50 : val);
             }
 
-            exec(`journalctl -u hmbot | tail -n${n}`, (error, stdout, stderr) => {
+            exec(`sudo journalctl -u hmbot | tail -n${n}`, (error, stdout, stderr) => {
                 channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         }

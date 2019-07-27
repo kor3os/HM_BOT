@@ -133,8 +133,22 @@ function warnMember(member, reason = "") {
     saveConfig();
 }
 
+// Get score a user needs to get Guide frénétique
+function scoreGoal(member) {
+    let goal = config.minMsgCount;
+
+    for (let role in member.roles) {
+        if (config.bonusRoles.includes(role.id))
+            goal -= 50;
+    }
+
+    return goal;
+}
+
 // Message count (Guide frénétique)
 function updateMsgCount(member) {
+    let goal = scoreGoal(member);
+
     // Update date and shift counts if new day
     if (today() !== msgCount.date) {
         msgCount.date = today();
@@ -148,7 +162,7 @@ function updateMsgCount(member) {
             // No messages in a month, delete entry
             if (total === 0) {
                 delete msgCount.users[user];
-            } else if (total < config.minMsgCount && memberRole(member, "Guide frénétique")) {
+            } else if (total < goal && memberRole(member, "Guide frénétique")) {
                 member.removeRole(getRole("Guide frénétique"));
             }
         }
@@ -173,15 +187,20 @@ function updateMsgCount(member) {
     // Remove/add role with total count
     let totalCount = msgCount.users[member.user.id].counts.reduce((n, a) => a + n, 0);
 
-    // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-    if (totalCount >= config.minMsgCount
+    if (totalCount >= goal
         && !memberRole(member, "Guide frénétique")
-        && Date.now() > member.joinedTimestamp + "30d".toMs())
+        && Date.now() > member.joinedTimestamp + "30d".toMs()) {
+        // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
         member.addRole(getRole("Guide frénétique"));
-    // Remove role from people under the treshold if they have it
-    else if (totalCount < config.minMsgCount
-        && memberRole(member, "Guide frénétique"))
+
+        // Welcome message in #les-bg-pas-pd
+        const lesbg = bot.channels.get("590507964280995859");
+        lesbg.send(`Bienvenue dans ${lesbg}, ${member}.`);
+    } else if (totalCount < goal
+        && memberRole(member, "Guide frénétique")) {
+        // Remove role from people under the treshold if they have it
         member.removeRole(getRole("Guide frénétique"));
+    }
 }
 
 // Get list of [user, score] sorted by score (descending)
@@ -400,13 +419,12 @@ function loadCommands() {
                     // Get various stats from user data
                     let rank = topUsers().map(e => e[0]).indexOf(memberArg.user.id) + 1,
                         tot = usrData.counts.reduce((a, b) => a + b, 0),
-                        avg = Math.round(tot / usrData.counts.length * 100) / 100,
-                        last = usrData.counts[0];
+                        avg = Math.round(tot / usrData.counts.length * 100) / 100;
 
                     channel.send({
                         embed: new MoutardeEmbed()
                             .setTitle(`Score de ${memberArg.user.tag} (${config.daysMsgCount} jours)`)
-                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nMessages du jour : **${last}**`)
+                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nScore pour Guide frénétique : **${scoreGoal(memberArg)}**`)
                     });
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
