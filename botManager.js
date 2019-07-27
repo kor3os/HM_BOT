@@ -32,7 +32,7 @@ bot.on("message", message => {
             exec(`sudo systemctl ${command} hmbot`, (error, stdout, stderr) => {
                 channel.send(error ? "```" + stderr.redText() + "```" : "Commande executée correctement.");
             });
-        } else if (command.match(/statut|s/)) {
+        } else if (command.match(/statu[ts]/)) {
             // Status query
             exec(`systemctl is-active --quiet hmbot`, error => { // FIXME (toujours considéré comme actif)
                 channel.send(`:${error ? "x" : "white_check_mark"}: Moutarde-chan est actuellement **${error ? "stoppée" : "active"}**.`);
