@@ -8,6 +8,8 @@
 const fs = require("fs");
 const secrets = require("./secrets.json");
 
+const graph = require("./graph");
+
 // Launch the webhook listener
 const WHL = require("./webHookListener.js");
 
@@ -425,6 +427,21 @@ function loadCommands() {
                         embed: new MoutardeEmbed()
                             .setTitle(`Score de ${memberArg.user.tag} (${config.daysMsgCount} jours)`)
                             .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nScore pour Guide frénétique : **${scoreGoal(memberArg)}**`)
+                    });
+                } else {
+                    channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
+                }
+            }),
+
+        new Command("u", "graph",
+            "[@user]` : Affiche le graphique de score sur 30 jours.",
+            (member, channel, args, memberArg) => {
+                if (memberArg == null) memberArg = member;
+                let usrData = msgCount.users[memberArg.user.id];
+
+                if (usrData != null) {
+                    channel.send(`:chart_with_upwards_trend: Graphique du score de **${memberArg.user.username}** :`, {
+                        attachment: new Discord.Attachment(graph(usrData.counts, 400, 150, 10), "score.png")
                     });
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
