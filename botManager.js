@@ -10,6 +10,21 @@ const bot = new Discord.Client();
 
 let logChannel;
 
+
+// Launch the webhook listener
+const WHL = require("./webHookListener.js");
+
+WHL.callback = function() {
+    try {
+        bot.channels.get("311496070074990593").send("I have just updated!"); //TODO: use logchannel when it's working correctly
+    } catch (error) {
+        console.warn("Unable to alert on discord, just updated.");
+    }
+};
+
+WHL.init(7227, secrets.webHookSecret);
+
+
 String.prototype.redText = function() {
     return "ml\n-" + this.replace("\n", "'\n");
 };
