@@ -39,8 +39,8 @@ bot.on("message", message => {
             });
         } else if (command === "update") {
             // Update the bot, just pulling from git and starting the bot if necessary
-            exec("sudo git pull && sudo systemctl start hmbot", (error, stdout, stderr) => {
-                channel.send(error ? "```" + stderr.redText() + "```" : "Moutarde chan a été mise à jour.");
+            exec("git pull && sudo systemctl start hmbot", (error, stdout, stderr) => {
+                channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         } else if (command.match(/logs?/)) {
             let n = 10;
@@ -51,6 +51,10 @@ bot.on("message", message => {
             }
 
             exec(`sudo journalctl -u hmbot | tail -n${n}`, (error, stdout, stderr) => {
+                channel.send("```" + (error ? stderr.redText() : stdout) + "```");
+            });
+        } else if (command.match(/(ver(sion)?)|commit/)){
+            exec('git log -1 --format="Commit:%h %s"', (error, stdout, stderr) =>{
                 channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         }
