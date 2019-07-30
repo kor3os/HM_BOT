@@ -16,7 +16,9 @@ const WHL = require("./webHookListener.js");
 
 WHL.callback = function() {
     try {
-        bot.channels.get("311496070074990593").send("I have just updated!"); //TODO: use logchannel when it's working correctly
+        exec('git log -1 --format="I have just updated to commit: %h %s"', (error, stdout, stderr) =>{
+            bot.channels.get("311496070074990593").send("```" + (error ? stderr.redText() : stdout) + "```");
+        });
     } catch (error) {
         console.warn("Unable to alert on discord, just updated.");
     }
@@ -69,7 +71,7 @@ bot.on("message", message => {
                 channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         } else if (command.match(/(ver(sion)?)|commit/)){
-            exec('git log -1 --format="Commit:%h %s"', (error, stdout, stderr) =>{
+            exec('git log -1 --format="Commit: %h %s"', (error, stdout, stderr) =>{
                 channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         }
