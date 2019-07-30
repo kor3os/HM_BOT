@@ -18,8 +18,11 @@
   },
   "homepage": "https://github.com/themoonisacheese/HM_BOT#readme",
   "dependencies": {
+<<<<<<< HEAD
     "@discordjs/uws": "^10.149.0",
     "bufferutil": "^4.0.1",
+=======
+>>>>>>> 708fa510c851bb8460dae94dc043a3636b9f36fa
     "canvas": "^2.5.0",
     "discord.js": "^11.5.1",
     "journalctl": "^1.0.0",
