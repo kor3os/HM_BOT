@@ -593,7 +593,7 @@ function loadCommands() {
 
         new Command("m", "reversescore",
             " <@user>` : Inverse le score d'un utilisateur",
-            () => {
+            (member, channel, args, memberArg) => {
                 msgCount.users[memberArg.user.id].counts.reverse();
                 return true;
             }, [], config.devs),
