@@ -16,12 +16,15 @@ function graph(data, width, height, stops = 25) {
     ctx.strokeStyle = "lightgray";
 
     // Draw graduation lines
+    ctx.beginPath();
+
     for (let i = 0; i <= max; i += stops) {
         let y = height - mar - i * ((height - 2 * mar) / max);
 
         ctx.moveTo(marLeft, y);
         ctx.lineTo(width - mar, y);
     }
+    ctx.stroke();
 
     // Style for graph
     ctx.fillStyle = "rgba(255, 255, 107, 0.75)";
@@ -61,7 +64,6 @@ function graph(data, width, height, stops = 25) {
 
         ctx.fillText("" + i, marLeft - 6, y);
     }
-
     ctx.stroke();
 
     return canvas.toBuffer();
