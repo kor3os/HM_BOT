@@ -10,7 +10,10 @@ function graph(data, width, height, stops = 25) {
 
     let mar = 10, marLeft = 30;
 
+    // Get maximum value
     let max = data.reduce((a, max) => (a > max ? a : max), 0);
+    // Get graduation above maximum value
+    max = Math.ceil(max/stops) * stops;
 
     // Style for graduation lines
     ctx.strokeStyle = "lightgray";
