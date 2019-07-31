@@ -440,9 +440,8 @@ function loadCommands() {
                 let usrData = msgCount.users[memberArg.user.id];
 
                 if (usrData != null) {
-                    channel.send(`:chart_with_upwards_trend: Graphique du score de **${memberArg.user.username}** :`, {
-                        attachment: new Discord.Attachment(graph(usrData.counts, 400, 150, 10), "score.png")
-                    });
+                    channel.send(`:chart_with_upwards_trend: Graphique du score de **${memberArg.user.tag}**`,
+                        new Discord.Attachment(graph(usrData.counts.reverse(), 400, 150, 10), "graph.png"));
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
                 }

@@ -1,9 +1,5 @@
 const {createCanvas} = require("canvas");
 
-function canvasToBuffer(canvas) {
-    return Buffer.from(canvas.toDataURL().substring(22), "base64");
-}
-
 // Create a graph image, returns a buffer
 function graph(data, width, height, stops = 25) {
     let canvas = createCanvas(width, height),
@@ -57,7 +53,7 @@ function graph(data, width, height, stops = 25) {
 
     ctx.stroke();
 
-    return canvasToBuffer(canvas);
+    return canvas.toBuffer();
 }
 
 module.exports = graph;
