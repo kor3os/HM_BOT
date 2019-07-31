@@ -591,6 +591,13 @@ function loadCommands() {
                 return true;
             }, modRoles),
 
+        new Command("m", "reversescore",
+            " <@user>` : Inverse le score d'un utilisateur",
+            () => {
+                msgCount.users[memberArg.user.id].counts.reverse();
+                return true;
+            }, [], config.devs),
+
         new Command("m", "reload",
             "` : Recharge le fichier de config.",
             () => {
