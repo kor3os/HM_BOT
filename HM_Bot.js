@@ -430,7 +430,7 @@ function loadCommands() {
 
                 if (usrData != null) {
                     channel.send(`:chart_with_upwards_trend: Graphique du score de **${memberArg.user.tag}**`,
-                        new Discord.Attachment(graph(usrData.counts.reverse(), 400, 150, 10), "graph.png"));
+                        new Discord.Attachment(graph([...usrData.counts].reverse(), 400, 150, 10), "graph.png"));
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
                 }
