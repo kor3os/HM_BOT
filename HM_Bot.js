@@ -10,18 +10,7 @@ const secrets = require("./secrets.json");
 
 const graph = require("./graph");
 
-// Launch the webhook listener
-const WHL = require("./webHookListener.js");
 
-WHL.callback = function() {
-    try {
-        bot.channels.get("311496070074990593").send("I have just updated!");
-    } catch (error) {
-        console.warn("Unable to alert on discord, just updated.");
-    }
-};
-
-WHL.init(7227, secrets.webHookSecret);
 
 // Discord library and client
 const Discord = require("discord.js");

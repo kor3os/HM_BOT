@@ -10,6 +10,23 @@ const bot = new Discord.Client();
 
 let logChannel;
 
+
+// Launch the webhook listener
+const WHL = require("./webHookListener.js");
+
+WHL.callback = function() {
+    try {
+        exec('git log -1 --format="I have just updated to commit: %h %s"', (error, stdout, stderr) =>{
+            bot.channels.get("311496070074990593").send("```" + (error ? stderr.redText() : stdout) + "```");
+        });
+    } catch (error) {
+        console.warn("Unable to alert on discord, just updated.");
+    }
+};
+
+WHL.init(7227, secrets.webHookSecret);
+
+
 String.prototype.redText = function() {
     return "ml\n-" + this.replace("\n", "'\n");
 };
@@ -39,8 +56,8 @@ bot.on("message", message => {
             });
         } else if (command === "update") {
             // Update the bot, just pulling from git and starting the bot if necessary
-            exec("sudo git pull && sudo systemctl start hmbot", (error, stdout, stderr) => {
-                channel.send(error ? "```" + stderr.redText() + "```" : "Moutarde chan a été mise à jour.");
+            exec("git pull && sudo systemctl start hmbot", (error, stdout, stderr) => {
+                channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         } else if (command.match(/logs?/)) {
             let n = 10;
@@ -51,6 +68,10 @@ bot.on("message", message => {
             }
 
             exec(`sudo journalctl -u hmbot | tail -n${n}`, (error, stdout, stderr) => {
+                channel.send("```" + (error ? stderr.redText() : stdout) + "```");
+            });
+        } else if (command.match(/(ver(sion)?)|commit/)){
+            exec('git log -1 --format="Commit: %h %s"', (error, stdout, stderr) =>{
                 channel.send("```" + (error ? stderr.redText() : stdout) + "```");
             });
         }
