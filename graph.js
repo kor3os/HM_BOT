@@ -12,6 +12,17 @@ function graph(data, width, height, stops = 25) {
 
     let max = data.reduce((a, max) => (a > max ? a : max), 0);
 
+    // Style for graduation lines
+    ctx.strokeStyle = "lightgray";
+
+    // Draw graduation lines
+    for (let i = 0; i <= max; i += stops) {
+        let y = height - mar - i * ((height - 2 * mar) / max);
+
+        ctx.moveTo(marLeft, y);
+        ctx.lineTo(width - mar, y);
+    }
+
     // Style for graph
     ctx.fillStyle = "rgba(255, 255, 107, 0.75)";
 
