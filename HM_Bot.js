@@ -182,11 +182,12 @@ function updateMsgCount(member) {
         && !memberRole(member, "Guide frénétique")
         && Date.now() > member.joinedTimestamp + "30d".toMs()) {
         // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-        member.addRole(getRole("Guide frénétique"));
-
+        member.addRole(getRole("Guide frénétique")).catch(err=>{}); //reminder:handle your promises, especially if they can be rejected
+        /*Temp disable of the welcome message because obviously bugged
         // Welcome message in #les-bg-pas-pd
         const lesbg = bot.channels.get("590507964280995859");
         lesbg.send(`Bienvenue dans ${lesbg}, ${member}.`);
+        */
     } else if (totalCount < goal
         && memberRole(member, "Guide frénétique")) {
         // Remove role from people under the treshold if they have it
