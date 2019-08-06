@@ -18,7 +18,7 @@ const Discord = require("discord.js");
 const bot = new Discord.Client();
 
 // Bot configuration
-let config, msgCount, hashes;
+let config, msgCount, duplicates;
 let hentaiMoutarde;
 
 // Bot managers
@@ -657,7 +657,7 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
 
     // Load configuration files
-    [config, msgCount, hashes] = loadJson("config", "msgCount", "hashes");
+    [config, msgCount, duplicates] = loadJson("config", "msgCount", "duplicates");
     bot.user.setActivity(config.game);
 
     // Get server and load all bot commands
@@ -697,7 +697,7 @@ bot.once("ready", () => {
 async function potentialDuplicate(url) {
     return new Promise(res => {
         imageHash(url, 16, true, (err, hash) => {
-            let combinedHashes = Object.assign({}, ...hashes);
+            let combinedHashes = Object.assign({}, ...duplicates.hashes);
 
             for (let id in combinedHashes) {
                 if (hammingDistance(combinedHashes[id], hash) < 25)
@@ -709,8 +709,8 @@ async function potentialDuplicate(url) {
 }
 
 function shiftHashes() {
-    hashes.pop();
-    hashes.unshift({});
+    duplicates.hashes.pop();
+    duplicates.hashes.unshift({});
 }
 
 // Message handling
@@ -821,11 +821,14 @@ bot.on("message", async message => {
                         embed: new MoutardeEmbed()
                             .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
                             .setImage(originalFile)
+                    }).then(msg2 => {
+                        duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
+                        saveJson(duplicates, "duplicates");
                     });
                 }
 
-                hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
-                saveJson(hashes, "hashes");
+                duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
+                saveJson(duplicates, "duplicates");
             }
             i++;
         }
@@ -834,17 +837,44 @@ bot.on("message", async message => {
 
 bot.on("messageDelete", message => {
     let category = message.channel.parent;
-    if (category && config.duplicateCategories.includes(category.id)) {
-        let delId = message.channel.id + "." + message.id;
-        for (let day of hashes) {
+    let updated = false;
+
+    // channel.message id of deleted message
+    let delId = message.channel.id + "." + message.id;
+
+    // Remove message from json if deleted
+    if (duplicates.messages[delId]) {
+        delete duplicates.messages[delId];
+        updated = true;
+    }
+
+    if (category && config.duplicateCategories.includes(category.id) && message.attachments.size > 0) {
+
+        // Remove hash from hashes
+        for (let day of duplicates.hashes) {
             for (let id in day) {
                 if (id.startsWith(delId)) {
                     delete day[id];
+                    updated = true;
                 }
             }
         }
-        saveJson(hashes, "hashes");
+
+        // Delete & remove message if one of the duplicates has been deleted
+        for (let id in duplicates.messages) {
+            if (duplicates.messages[id].includes(delId)) {
+                delete duplicates.messages[id];
+
+                let [chan, msg] = id.split(".");
+                bot.channels.get(chan).fetchMessage(msg).then(msg => msg.delete());
+
+                updated = true;
+            }
+        }
     }
+
+    if (updated)
+        saveJson(duplicates, "duplicates");
 });
 
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
