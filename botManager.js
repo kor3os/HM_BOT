@@ -32,9 +32,16 @@ String.prototype.redText = function() {
 bot.on("ready", () => {
     logChannel = bot.channels.get(config.logChannel);
     bot.user.setActivity("vec sa grande sœur");
-    exec('git log -1 --format="I\'m on commit: %h %s"', (error, stdout, stderr) =>{
-        bot.channels.get("311496070074990593").send("```" + (error ? stderr.redText() : stdout) + "```");
-    });
+    setTimeout(()=>{ //wait until everything is set up.
+        try {
+            exec('git log -1 --format="I\'m on commit: %h %s"', (error, stdout, stderr) =>{
+                bot.channels.get("311496070074990593").send("```" + (error ? stderr.redText() : stdout) + "```");
+            });
+        } catch (error) {
+            console.log(e); //errors here usually mean we tried sending a message bfeore really being logged in.
+        }
+    },1000);
+    
 });
 
 bot.on("message", message => {
