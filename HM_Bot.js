@@ -701,9 +701,9 @@ async function potentialDuplicate(url) {
 
             for (let id in combinedHashes) {
                 if (hammingDistance(combinedHashes[id], hash) < 25)
-                    res(id);
+                    res({id, hash});
             }
-            res("h" + hash);
+            res({hash});
         });
     });
 }
@@ -805,10 +805,10 @@ bot.on("message", async message => {
         for (let attachment of message.attachments.array()) {
             // Only image attachments have a height property
             if (attachment.height) {
-                let idOrHash = await potentialDuplicate(attachment.url);
+                let {id, hash} = await potentialDuplicate(attachment.url);
 
-                if (!idOrHash.startsWith("h")) {
-                    let [chan, msg, num] = idOrHash.split(".");
+                if (id) {
+                    let [chan, msg, num] = id.split(".");
                     let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
 
                     let date = new Date(originalMsg.createdTimestamp);
@@ -822,13 +822,28 @@ bot.on("message", async message => {
                             .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
                             .setImage(originalFile)
                     });
-                } else {
-                    hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = idOrHash.substring(1);
-                    saveJson(hashes, "hashes");
                 }
+
+                hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
+                saveJson(hashes, "hashes");
             }
             i++;
         }
+    }
+});
+
+bot.on("messageDelete", message => {
+    let category = message.channel.parent;
+    if (category && config.duplicateCategories.includes(category.id)) {
+        let delId = message.channel.id + "." + message.id;
+        for (let day of hashes) {
+            for (let id in day) {
+                if (id.startsWith(delId)) {
+                    delete day[id];
+                }
+            }
+        }
+        saveJson(hashes, "hashes");
     }
 });
 
