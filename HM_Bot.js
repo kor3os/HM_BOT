@@ -10,14 +10,15 @@ const secrets = require("./secrets.json");
 
 const graph = require("./graph");
 
-
+const {hammingDistance} = require("blockhash");
+const {imageHash} = require("image-hash");
 
 // Discord library and client
 const Discord = require("discord.js");
 const bot = new Discord.Client();
 
 // Bot configuration
-let config, msgCount;
+let config, msgCount, hashes;
 let hentaiMoutarde;
 
 // Bot managers
@@ -116,8 +117,8 @@ function warnMember(member, reason = "") {
         let nWarns = config.warns[member.toString()].length;
         if (nWarns > 0
             && nWarns % config.maxWarns === 0
-            && !memberRole(member, "Muted")) {
-            member.addRole(getRole("Muted"), "3rd warning")
+            && !memberRole(member, "GOULAG")) {
+            member.addRole(getRole("GOULAG"), "3rd warning")
                 .catch(console.error);
         }
     }
@@ -136,53 +137,50 @@ function scoreGoal(member) {
     return goal;
 }
 
+function shiftMessageCounts() {
+    for (let user in msgCount) {
+        if (msgCount.hasOwnProperty(user)) {
+            msgCount[user].counts.pop();
+            msgCount[user].counts.unshift(0);
+
+            let total = msgCount[user].counts.reduce((n, a) => a + n, 0);
+
+            // No messages in a month, delete entry
+            if (total === 0)
+                delete msgCount[user];
+        }
+    }
+}
+
 // Message count (Guide frénétique)
 function updateMsgCount(member) {
     let goal = scoreGoal(member);
 
-    // Update date and shift counts if new day
-    if (today() !== msgCount.date) {
-        msgCount.date = today();
-
-        for (let user in msgCount.users) {
-            msgCount.users[user].counts.pop();
-            msgCount.users[user].counts.unshift(0);
-
-            let total = msgCount.users[user].counts.reduce((n, a) => a + n, 0);
-
-            // No messages in a month, delete entry
-            if (total === 0) {
-                delete msgCount.users[user];
-            } else if (total < goal && memberRole(member, "Guide frénétique")) {
-                member.removeRole(getRole("Guide frénétique"));
-            }
-        }
-    }
-
     // If user doesn't have an entry, make count array and set date
-    if (msgCount.users[member.user.id] == null) {
-        msgCount.users[member.user.id] = {
+    if (msgCount[member.user.id] == null) {
+        msgCount[member.user.id] = {
             counts: new Array(config.daysMsgCount).fill(0),
             lastMsg: Date.now()
         };
     } else {
         // Update last message date
-        msgCount.users[member.user.id].lastMsg = Date.now();
+        msgCount[member.user.id].lastMsg = Date.now();
     }
 
     // Add message to count and save
-    msgCount.users[member.user.id].counts[0]++;
+    msgCount[member.user.id].counts[0]++;
 
     saveJson(msgCount, "msgCount");
 
     // Remove/add role with total count
-    let totalCount = msgCount.users[member.user.id].counts.reduce((n, a) => a + n, 0);
+    let totalCount = msgCount[member.user.id].counts.reduce((n, a) => a + n, 0);
 
     if (totalCount >= goal
         && !memberRole(member, "Guide frénétique")
         && Date.now() > member.joinedTimestamp + "30d".toMs()) {
         // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-        member.addRole(getRole("Guide frénétique")).catch(err=>{}); //reminder:handle your promises, especially if they can be rejected
+        member.addRole(getRole("Guide frénétique")).catch(err => {
+        }); //reminder:handle your promises, especially if they can be rejected
         /*Temp disable of the welcome message because obviously bugged
         // Welcome message in #les-bg-pas-pd
         const lesbg = bot.channels.get("590507964280995859");
@@ -197,7 +195,7 @@ function updateMsgCount(member) {
 
 // Get list of [user, score] sorted by score (descending)
 function topUsers() {
-    return Object.entries(msgCount.users)
+    return Object.entries(msgCount)
         .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
         .sort((e1, e2) => e2[1] - e1[1]);
 }
@@ -389,7 +387,7 @@ function loadCommands() {
                         // Format string as "#Rank Username           Score" with padding + cutting
                         return s + "\n" +
                             ("#" + (i + pageN + 1)).padEnd(5) + " " +
-                            (user != null ? user.username.replace("'","’").padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
+                            (user != null ? user.username.replace("'", "’").padEnd(18).slice(0, 18) : "[membre inconnu]  ") + " " +
                             e[1];
                     }, "");
 
@@ -405,7 +403,7 @@ function loadCommands() {
             (member, channel, args, memberArg) => {
                 // By default the user sending the message
                 if (memberArg == null) memberArg = member;
-                let usrData = msgCount.users[memberArg.user.id];
+                let usrData = msgCount[memberArg.user.id];
 
                 if (usrData != null) {
                     // Get various stats from user data
@@ -427,7 +425,7 @@ function loadCommands() {
             "[@user]` : Affiche le graphique de score sur 30 jours.",
             (member, channel, args, memberArg) => {
                 if (memberArg == null) memberArg = member;
-                let usrData = msgCount.users[memberArg.user.id];
+                let usrData = msgCount[memberArg.user.id];
 
                 if (usrData != null) {
                     channel.send(`:chart_with_upwards_trend: Graphique du score de **${memberArg.user.tag}**`,
@@ -595,7 +593,7 @@ function loadCommands() {
         new Command("m", "reversescore",
             " <@user>` : Inverse le score d'un utilisateur",
             (member, channel, args, memberArg) => {
-                msgCount.users[memberArg.user.id].counts.reverse();
+                msgCount[memberArg.user.id].counts.reverse();
                 return true;
             }, [], config.devs),
 
@@ -659,7 +657,7 @@ bot.once("ready", () => {
     console.log(`Bot started ! ${bot.users.size} users.`);
 
     // Load configuration files
-    [config, msgCount] = loadJson("config", "msgCount");
+    [config, msgCount, hashes] = loadJson("config", "msgCount", "hashes");
     bot.user.setActivity(config.game);
 
     // Get server and load all bot commands
@@ -696,16 +694,45 @@ bot.once("ready", () => {
     });
 });
 
+async function potentialDuplicate(url) {
+    return new Promise(res => {
+        imageHash(url, 16, true, (err, hash) => {
+            let combinedHashes = Object.assign({}, ...hashes);
+
+            for (let id in combinedHashes) {
+                if (hammingDistance(combinedHashes[id], hash) < 25)
+                    res(id);
+            }
+            res("h" + hash);
+        });
+    });
+}
+
+function shiftHashes() {
+    hashes.pop();
+    hashes.unshift({});
+}
+
 // Message handling
-bot.on("message", message => {
+bot.on("message", async message => {
     const {author, member, channel, content} = message;
 
     // Ignore bot and private messages
     if (author.bot || channel.type !== "text") return;
 
+    // Update date
+    if (today() !== config.date) {
+        config.date = today();
+        saveConfig();
+
+        // Shift arrays
+        shiftMessageCounts();
+        shiftHashes();
+    }
+
     if (!config.ignoredCount.includes(channel.name)
-        && (msgCount.users[member.user.id] == null
-            || Date.now() >= msgCount.users[member.user.id].lastMsg + config.msgDelay)) {
+        && (msgCount[member.user.id] == null
+            || Date.now() >= msgCount[member.user.id].lastMsg + config.msgDelay)) {
         updateMsgCount(member);
     }
 
@@ -745,20 +772,20 @@ bot.on("message", message => {
             }
             // Messages with more than 1000 chars
             else if (content.length >= 1000) {
-                warnMsg = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas. (warn)\n" +
-                    "*Please avoid walls of text! Use #spam-hell-cancer for copypastas. (warn)*";
+                warnMsg = "Merci de limiter vos pavés ! Utilisez #spam-hell-cancer pour vos copypastas.\n" +
+                    "*Please avoid walls of text! Use #spam-hell-cancer for copypastas.*";
                 reason = "Message > 1000 caractères";
             }
             // Messages which have been sent multiple times
             else if (message.attachments.size === 0 && SM.isSpam(content)) {
-                warnMsg = "Prévention anti-spam - ne vous répétez pas. (warn)\n" +
-                    "*Spam prevention - don't repeat yourself. (warn)*";
+                warnMsg = "Prévention anti-spam - ne vous répétez pas.\n" +
+                    "*Spam prevention - don't repeat yourself.*";
                 reason = "Message spam";
             }
             // Messages with a repeating char for 3/4 of it
             else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
-                warnMsg = "Prévention anti-flood - ne vous répétez pas. (warn)\n" +
-                    "*Flood prevention - don't repeat yourself. (warn)*";
+                warnMsg = "Prévention anti-flood - ne vous répétez pas.\n" +
+                    "*Flood prevention - don't repeat yourself.*";
                 reason = "Message avec répétition";
             }
         }
@@ -768,9 +795,40 @@ bot.on("message", message => {
     if (reason !== "") {
         warnMember(member, reason);
         if (warnMsg !== "")
-            channel.send(member.toString() + "\n" + warnMsg);
+            channel.send(member.toString() + "\n" + warnMsg.replace(/(\n|\*$)/g, " (warn)$1"));
         message.delete()
             .catch(console.error);
+    }
+
+    if (config.duplicateCategories.includes(channel.parent.id)) {
+        let i = 0;
+        for (let attachment of message.attachments.array()) {
+            // Only image attachments have a height property
+            if (attachment.height) {
+                let idOrHash = await potentialDuplicate(attachment.url);
+
+                if (!idOrHash.startsWith("h")) {
+                    let [chan, msg, num] = idOrHash.split(".");
+                    let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
+
+                    let date = new Date(originalMsg.createdTimestamp);
+                    let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
+                        time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
+
+                    let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
+
+                    message.channel.send({
+                        embed: new MoutardeEmbed()
+                            .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
+                            .setImage(originalFile)
+                    });
+                } else {
+                    hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = idOrHash.substring(1);
+                    saveJson(hashes, "hashes");
+                }
+            }
+            i++;
+        }
     }
 });
 

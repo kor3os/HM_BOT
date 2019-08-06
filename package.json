@@ -18,17 +18,18 @@
   },
   "homepage": "https://github.com/themoonisacheese/HM_BOT#readme",
   "dependencies": {
-<<<<<<< HEAD
     "@discordjs/uws": "^10.149.0",
+    "blockhash": "^0.2.0",
     "bufferutil": "^4.0.1",
-=======
->>>>>>> 708fa510c851bb8460dae94dc043a3636b9f36fa
     "canvas": "^2.5.0",
     "data-uri-to-buffer": "^2.0.1",
     "discord.js": "^11.5.1",
+    "image-hash": "^3.3.9",
     "journalctl": "^1.0.0",
+    "jpeg-js": "^0.3.5",
     "libsodium-wrappers": "^0.7.5",
     "nodemon": "^1.19.1",
-    "opusscript": "0.0.6"
+    "opusscript": "0.0.6",
+    "png-js": "^0.1.1"
   }
 }
