@@ -805,30 +805,34 @@ bot.on("message", async message => {
         for (let attachment of message.attachments.array()) {
             // Only image attachments have a height property
             if (attachment.height) {
-                let {id, hash} = await potentialDuplicate(attachment.url);
+                try {
+                    let {id, hash} = await potentialDuplicate(attachment.url);
 
-                if (id) {
-                    let [chan, msg, num] = id.split(".");
-                    let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
+                    if (id) {
+                        let [chan, msg, num] = id.split(".");
+                        let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
 
-                    let date = new Date(originalMsg.createdTimestamp);
-                    let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
-                        time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
+                        let date = new Date(originalMsg.createdTimestamp);
+                        let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
+                            time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
 
-                    let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
+                        let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
 
-                    message.channel.send({
-                        embed: new MoutardeEmbed()
-                            .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
-                            .setImage(originalFile)
-                    }).then(msg2 => {
-                        duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
-                        saveJson(duplicates, "duplicates");
-                    });
+                        message.channel.send({
+                            embed: new MoutardeEmbed()
+                                .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
+                                .setImage(originalFile)
+                        }).then(msg2 => {
+                            duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
+                            saveJson(duplicates, "duplicates");
+                        });
+                    }
+
+                    duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
+                    saveJson(duplicates, "duplicates");
+                } catch (e) {
+                    // Error with the hashing probably
                 }
-
-                duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
-                saveJson(duplicates, "duplicates");
             }
             i++;
         }
@@ -849,7 +853,6 @@ bot.on("messageDelete", message => {
     }
 
     if (category && config.duplicateCategories.includes(category.id) && message.attachments.size > 0) {
-
         // Remove hash from hashes
         for (let day of duplicates.hashes) {
             for (let id in day) {
