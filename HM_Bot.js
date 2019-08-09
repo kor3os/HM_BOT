@@ -834,9 +834,6 @@ bot.on("message", async message => {
 
                     duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
                     saveJson(duplicates, "duplicates");
-                } catch (e) {
-                    // Error with the hashing probably
-                }
             }
             i++;
         }
