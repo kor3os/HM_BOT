@@ -806,7 +806,11 @@ bot.on("message", async message => {
             // Only image attachments have a height property
             if (attachment.height) {
                 try {
-                    let {id, hash} = await potentialDuplicate(attachment.url);
+                    var {id, hash} = await potentialDuplicate(attachment.url); //var because we need larger scope
+                } catch (error) {
+                    channel.send("@Themoonisacheese this would have made me crash");
+                    return;
+                }
 
                     if (id) {
                         let [chan, msg, num] = id.split(".");
