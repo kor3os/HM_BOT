@@ -804,7 +804,7 @@ bot.on("message", async message => {
         let i = 0;
         for (let attachment of message.attachments.array()) {
             // Only image attachments have a height property
-            if (attachment.height) {
+            if (attachment.filename.match(/\.(png|jpe?g)$/)) {
                 try {
                     var {id, hash} = await potentialDuplicate(attachment.url); //var because we need larger scope
                 } catch (error) {
