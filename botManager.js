@@ -86,8 +86,8 @@ bot.on("message", message => {
     }
 });
 
-journal.on("event", event => {
-    logChannel.send(`\`${event}\``);
-});
+// journal.on("event", event => {
+//     logChannel.send(`\`${event}\``);
+// });
 
 bot.login(secrets.managerToken);
