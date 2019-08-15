@@ -136,7 +136,7 @@ function sendLog(action, member, reason, mod, channel) {
     modLogs.send({
         embed: new MoutardeEmbed()
             .setTitle(`**${member.user.tag}** a été **${action}**`)
-            .setDescription(desc)
+            .setDescription(desc.trim())
             .setThumbnail(member.user.displayAvatarURL)
             .setTimestamp()
     });
@@ -503,7 +503,7 @@ function loadCommands() {
                 saveConfig();
                 await memberArg.addRole(getRole("GOULAG"));
                 // Remove role after [time] ms
-                setInterval(() => {
+                setTimeout(() => {
                     memberArg.removeRole(getRole("GOULAG"));
                     cleanupTempActions();
 
@@ -533,7 +533,7 @@ function loadCommands() {
                 config.tempActions.push(["ban", memberArg.user.id, Date.now() + time]);
                 saveConfig();
                 await memberArg.ban({days: 1, reason});
-                setInterval(() => {
+                setTimeout(() => {
                     hentaiMoutarde.unban(memberArg);
                     cleanupTempActions();
 
