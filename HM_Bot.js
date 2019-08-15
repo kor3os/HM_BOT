@@ -790,7 +790,7 @@ bot.on("message", async message => {
             // Delete discord invitation links and mute user
 
             let invite = content.match(/discord\.gg\/([^ ]+)/)[0],
-                guild = ;
+                guild = await bot.fetchInvite(invite).then(inv => inv.guild);
 
             if (guild) {
                 if (guild.name.match(/nude/i)) {
