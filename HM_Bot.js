@@ -19,7 +19,9 @@ const bot = new Discord.Client();
 
 // Bot configuration
 let config, msgCount, duplicates;
-let hentaiMoutarde;
+
+// Static channels
+let hentaiMoutarde, bumpChannel, modLogs;
 
 // Bot managers
 const spamManager = require("./spammanager.js");
@@ -120,9 +122,24 @@ function warnMember(member, reason = "") {
             && !memberRole(member, "GOULAG")) {
             member.addRole(getRole("GOULAG"), "3rd warning")
                 .catch(console.error);
+
+            sendLog("mute", member, "3ème warn");
         }
     }
     saveConfig();
+}
+
+// Send a log message to #modlogs
+function sendLog(action, member, reason, mod, channel) {
+    let desc = (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "");
+
+    modLogs.send({
+        embed: new MoutardeEmbed()
+            .setTitle(`**${member.user.tag}** a été **${action}**`)
+            .setDescription(desc)
+            .setThumbnail(member.user.displayAvatarURL)
+            .setTimestamp()
+    });
 }
 
 // Get score a user needs to get Guide frénétique
@@ -305,6 +322,8 @@ class ModAction extends Command {
                     await fun(memberArg, reason, time);
                     channel.send(`**${memberArg.user.tag}** a été ${name} `
                         + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
+
+                    sendLog(name, memberArg, reason || "Aucune raison", member, channel);
                 }
             }, modRoles);
     }
@@ -487,6 +506,8 @@ function loadCommands() {
                 setInterval(() => {
                     memberArg.removeRole(getRole("GOULAG"));
                     cleanupTempActions();
+
+                    sendLog("unmute", memberArg, "Fin du délai de warn");
                 }, time);
             }, true),
 
@@ -515,6 +536,8 @@ function loadCommands() {
                 setInterval(() => {
                     hentaiMoutarde.unban(memberArg);
                     cleanupTempActions();
+
+                    sendLog("unban", memberArg, "Fin du délai de ban");
                 }, time);
             }, true),
 
@@ -641,8 +664,6 @@ function loadCommands() {
     ];
 }
 
-let bumpChannel;
-
 function dlmBump() {
     // If bump channel exists (useful for testing purposes)
     if (bumpChannel) {
@@ -664,20 +685,30 @@ bot.once("ready", () => {
     hentaiMoutarde = bot.guilds.get(config.server);
     loadCommands();
 
-    // Get bump channel and bump
-    bumpChannel = bot.channels.get("311496070074990593");
+    // Get channels
+    bumpChannel = hentaiMoutarde.channels.get("311496070074990593");
+    modLogs = hentaiMoutarde.channels.get("403840920119672842");
     dlmBump();
 
     // Load timeouts for temporary mod actions
     config.tempActions.forEach(action => {
         let fun;
 
+        let usr = bot.fetchUser(action[1]);
+
         if (action[0] === "ban")
-            fun = () => hentaiMoutarde.unban(action[1]);
+            fun = () => {
+                hentaiMoutarde.unban(action[1]);
+
+                sendLog("unban", {user: usr}, "Fin du délai de tempban");
+            };
+
         else if (action[0] === "mute")
             fun = () => {
                 let mem = hentaiMoutarde.members.get(action[1]);
                 if (mem) mem.removeRole(getRole("GOULAG"));
+
+                sendLog("unmute", {user: usr}, "Fin du délai de mute");
             };
 
         // If time has passed, run straight away
@@ -697,6 +728,8 @@ bot.once("ready", () => {
 async function potentialDuplicate(url) {
     return new Promise(res => {
         imageHash(url, 16, true, (err, hash) => {
+            if (err) res();
+
             let combinedHashes = Object.assign({}, ...duplicates.hashes);
 
             for (let id in combinedHashes) {
@@ -755,8 +788,22 @@ bot.on("message", async message => {
             reason = "Message contenant @​everyone";
         } else if (content.match(/discord\.gg\/[^ ]+/)) {
             // Delete discord invitation links and mute user
-            reason = "Invitation discord";
-            member.addRole(getRole("GOULAG"));
+
+            let guild = content.match(/discord\.gg\/([^ ]+)/).groups[1];
+
+            if (guild) {
+                if (guild.name.match(/nude/i)) {
+                    let reas = "Serveur nudes";
+                    member.ban({days: 1, reason: reas});
+
+                    sendLog("ban", member, reas);
+                } else {
+                    reason = "Invitation discord";
+                    member.addRole(getRole("GOULAG"));
+
+                    sendLog("mute", member, reason);
+                }
+            }
         }
 
         // Count chars and get most used one
@@ -793,6 +840,8 @@ bot.on("message", async message => {
 
     // If any of these has been found, warn the user and delete the message
     if (reason !== "") {
+        sendLog("warn", member, reason, null, channel);
+
         warnMember(member, reason);
         if (warnMsg !== "")
             channel.send(member.toString() + "\n" + warnMsg.replace(/(\n|\*$)/g, " (warn)$1"));
@@ -805,35 +854,42 @@ bot.on("message", async message => {
         for (let attachment of message.attachments.array()) {
             // Only image attachments have a height property
             if (attachment.filename.match(/\.(png|jpe?g)$/)) {
+                let id, hash;
+
                 try {
-                    var {id, hash} = await potentialDuplicate(attachment.url); //var because we need larger scope
+                    let obj = await potentialDuplicate(attachment.url); //var because we need larger scope
+
+                    if (obj == null) throw "Hashing error";
+
+                    id = obj.id;
+                    hash = obj.hash;
                 } catch (error) {
                     channel.send("@Themoonisacheese this would have made me crash");
                     return;
                 }
 
-                    if (id) {
-                        let [chan, msg, num] = id.split(".");
-                        let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
+                if (id) {
+                    let [chan, msg, num] = id.split(".");
+                    let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
 
-                        let date = new Date(originalMsg.createdTimestamp);
-                        let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
-                            time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
+                    let date = new Date(originalMsg.createdTimestamp);
+                    let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
+                        time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
 
-                        let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
+                    let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
 
-                        message.channel.send({
-                            embed: new MoutardeEmbed()
-                                .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
-                                .setImage(originalFile)
-                        }).then(msg2 => {
-                            duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
-                            saveJson(duplicates, "duplicates");
-                        });
-                    }
+                    message.channel.send({
+                        embed: new MoutardeEmbed()
+                            .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
+                            .setImage(originalFile)
+                    }).then(msg2 => {
+                        duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
+                        saveJson(duplicates, "duplicates");
+                    });
+                }
 
-                    duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
-                    saveJson(duplicates, "duplicates");
+                duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
+                saveJson(duplicates, "duplicates");
             }
             i++;
         }
@@ -900,6 +956,8 @@ bot.on("guildMemberAdd", member => {
             "Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.\n" +
             "\n*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.\n" +
             "If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*");
+
+        sendLog("mute", member, "Autogoulag");
     } else {
         bot.channels.get("295533374016192514").send(
             config.welcome
@@ -910,5 +968,8 @@ bot.on("guildMemberAdd", member => {
         member.addRole(getRole("secte nsfw"));
     }
 });
+
+bot.on("guildBanAdd", (_, member) => sendLog("ban", member));
+bot.on("guildBanRemove", (_, member) => sendLog("unban", member));
 
 bot.login(secrets.token);
