@@ -789,7 +789,8 @@ bot.on("message", async message => {
         } else if (content.match(/discord\.gg\/[^ ]+/)) {
             // Delete discord invitation links and mute user
 
-            let guild = content.match(/discord\.gg\/([^ ]+)/).groups[1];
+            let invite = content.match(/discord\.gg\/([^ ]+)/)[0],
+                guild = ;
 
             if (guild) {
                 if (guild.name.match(/nude/i)) {
@@ -969,7 +970,7 @@ bot.on("guildMemberAdd", member => {
     }
 });
 
-bot.on("guildBanAdd", (_, member) => sendLog("ban", member));
-bot.on("guildBanRemove", (_, member) => sendLog("unban", member));
+bot.on("guildBanAdd", (_, user) => sendLog("ban", {user}));
+bot.on("guildBanRemove", (_, user) => sendLog("unban", {user}));
 
 bot.login(secrets.token);
