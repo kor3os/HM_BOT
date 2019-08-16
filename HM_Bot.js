@@ -1045,7 +1045,7 @@ bot.on("messageUpdate", (oldMsg, newMsg) => {
 
     sendLog({
         customTitle: true, title: "Message édité",
-        user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: oldMsg.content + "\n" + newMsg.content
+        user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: `__**Old:**__ ${oldMsg.content}\n__**New:**__ ${newMsg.content}`
     });
 });
 
