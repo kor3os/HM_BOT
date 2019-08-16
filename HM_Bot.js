@@ -196,9 +196,9 @@ function updateMsgCount(member) {
         && !memberRole(member, "Guide frénétique")
         && Date.now() > member.joinedTimestamp + "30d".toMs()) {
         // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-        member.addRole(getRole("Guide frénétique")).catch(err => {
-        }); //reminder:handle your promises, especially if they can be rejected
-        /*Temp disable of the welcome message because obviously bugged
+        member.addRole(getRole("Guide frénétique")).catch(err => {});
+        /* TODO: Fix welcome message
+        Temp disable of the welcome message because obviously bugged
         // Welcome message in #les-bg-pas-pd
         const lesbg = bot.channels.get("590507964280995859");
         lesbg.send(`Bienvenue dans ${lesbg}, ${member}.`);
@@ -733,8 +733,10 @@ async function potentialDuplicate(url) {
             let combinedHashes = Object.assign({}, ...duplicates.hashes);
 
             for (let id in combinedHashes) {
-                if (hammingDistance(combinedHashes[id], hash) < 25)
-                    res({id, hash});
+                try {
+                    if (hammingDistance(combinedHashes[id], hash) < 20)
+                        res({id, hash});
+                } catch (e) {}
             }
             res({hash});
         });
@@ -853,44 +855,43 @@ bot.on("message", async message => {
     if (config.duplicateCategories.includes(channel.parent.id)) {
         let i = 0;
         for (let attachment of message.attachments.array()) {
-            // Only image attachments have a height property
+            // File types available
             if (attachment.filename.match(/\.(png|jpe?g)$/)) {
                 let id, hash;
 
-                try {
-                    let obj = await potentialDuplicate(attachment.url); //var because we need larger scope
+                let obj = await potentialDuplicate(attachment.url); //var because we need larger scope
 
-                    if (obj == null) throw "Hashing error";
-
+                if (obj != null) {
                     id = obj.id;
                     hash = obj.hash;
-                } catch (error) {
-                    channel.send("@Themoonisacheese this would have made me crash");
-                    return;
                 }
 
-                if (id) {
-                    let [chan, msg, num] = id.split(".");
-                    let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
+                // If an id could be computed
+                if (hash) {
+                    // If a matching pic has been found
+                    if (id) {
+                        let [chan, msg, num] = id.split(".");
+                        let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
 
-                    let date = new Date(originalMsg.createdTimestamp);
-                    let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
-                        time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
+                        let date = new Date(originalMsg.createdTimestamp);
+                        let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
+                            time = ("" + date.getHours()).padStart(2, "0") + ":" + ("" + date.getMinutes()).padStart(2, "0");
 
-                    let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
+                        let originalFile = originalMsg.attachments.array()[(num ? num : 0)].url;
 
-                    message.channel.send({
-                        embed: new MoutardeEmbed()
-                            .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
-                            .setImage(originalFile)
-                    }).then(msg2 => {
-                        duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
-                        saveJson(duplicates, "duplicates");
-                    });
+                        message.channel.send({
+                            embed: new MoutardeEmbed()
+                                .setDescription(`:warning: Ce post est un potentiel repost de cette image envoyée par **${originalMsg.author.tag}** le *${day} à ${time}*.`)
+                                .setImage(originalFile)
+                        }).then(msg2 => {
+                            duplicates.messages[msg2.channel.id + "." + msg2.id] = [chan + "." + msg, channel.id + "." + message.id];
+                            saveJson(duplicates, "duplicates");
+                        });
+                    }
+
+                    duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
+                    saveJson(duplicates, "duplicates");
                 }
-
-                duplicates.hashes[0][channel.id + "." + message.id + (i !== 0 ? "." + i : "")] = hash;
-                saveJson(duplicates, "duplicates");
             }
             i++;
         }
