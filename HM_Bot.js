@@ -331,7 +331,7 @@ class ModAction extends Command {
                     channel.send(`**${memberArg.user.tag}** a été ${name} `
                         + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
 
-                    sendLog({name, memberArg, reason: reason || "Aucune raison", member, channel});
+                    sendLog({action: name, member: {user: memberArg.user}, reason: reason || "Aucune raison", mod: member, channel});
                 }
             }, modRoles);
     }
