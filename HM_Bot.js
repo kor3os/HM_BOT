@@ -988,14 +988,16 @@ bot.on("guildMemberRemove", (_, user) => sendLog({action: "kick", member: {user}
 
 // Message logs
 bot.on("messageDelete", message => {
+    if (message.author.bot) return;
     sendLog({
-        customTitle: true, title: `Message de ${message.author} supprimé dans ${message.channel}`,
+        customTitle: true, title: `Message de **${message.author.tag}** supprimé dans **#${message.channel.name}**`,
         customDesc: true, desc: message.content, member: {user: message.author}
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
+    if (oldMsg.author.bot) return;
     sendLog({
-        customTitle: true, title: `Message de ${oldMsg.author} édité dans ${oldMsg.channel}`,
+        customTitle: true, title: `Message de **${oldMsg.author.tag}** édité dans **#${oldMsg.channel.name}**`,
         customDesc: true, desc: oldMsg.content + "\n---\n" + newMsg.content, member: {user: oldMsg.author}
     });
 });
