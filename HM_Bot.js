@@ -984,7 +984,7 @@ bot.on("guildMemberAdd", member => {
 // Ban/unban/kick logs
 bot.on("guildBanAdd", (_, user) => sendLog({action: "ban", member: {user}}));
 bot.on("guildBanRemove", (_, user) => sendLog({action: "unban", member: {user}}));
-bot.on("guildMemberRemove", (_, user) => sendLog({action: "kick", member: {user}}));
+bot.on("guildMemberRemove", member => sendLog({action: "kick", member}));
 
 // Message logs
 bot.on("messageDelete", message => {
