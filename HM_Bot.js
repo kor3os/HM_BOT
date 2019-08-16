@@ -697,9 +697,12 @@ function dlmBump() {
         // Bump
         bumpChannel.send("dlm!bump");
 
-        // Call recursively with a timeout
+        // Calculate new bump time
         let time = "9h".toMs() + Math.floor(Math.random() * "1m".toMs());
         config.nextBump = Date.now() + time;
+        saveConfig();
+
+        // Call recursively
         setTimeout(dlmBump, time);
     }
 }
