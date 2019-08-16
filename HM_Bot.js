@@ -123,7 +123,7 @@ function warnMember(member, reason = "") {
             member.addRole(getRole("GOULAG"), "3rd warning")
                 .catch(console.error);
 
-            sendLog("mute", member, "3ème warn");
+            sendLog({action: "mute", member, reason: "3ème warn"});
         }
     }
     saveConfig();
