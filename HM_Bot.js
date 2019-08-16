@@ -139,7 +139,7 @@ function sendLog(obj) {
     let title = obj.customTitle ? obj.title :
         (user ? `**${user.tag}** a été **${action}**` : action);
     let desc = obj.customDesc ? obj.desc :
-        (mod || "") + (channel ? " dans " + channel : "") + (reason || "");
+        (mod || "") + (channel ? " dans " + channel : "") + "\n" + (reason || "");
 
     let embed = new MoutardeEmbed()
         .setTitle(title.trim())
