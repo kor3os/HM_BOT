@@ -718,20 +718,21 @@ bot.once("ready", () => {
     dlmBump();
 
     // Load timeouts for temporary mod actions
-    config.tempActions.forEach(action => {
-        let fun;
+    config.tempActions.forEach(async action => {
+        let usr = await bot.fetchUser(action[1]);
 
-        let usr = bot.fetchUser(action[1]);
+        let fun;
 
         if (action[0] === "ban")
             fun = () => {
+                logIgnore.push(action[1]);
                 hentaiMoutarde.unban(action[1]);
 
                 sendLog({action: "unban", user: usr, reason: "Fin du délai de ban"});
             };
-
         else if (action[0] === "mute")
             fun = () => {
+                logIgnore.push(action[1]);
                 let mem = hentaiMoutarde.members.get(action[1]);
                 if (mem) mem.removeRole(getRole("GOULAG"));
 
