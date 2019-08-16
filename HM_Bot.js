@@ -694,9 +694,13 @@ function loadCommands() {
 function dlmBump() {
     // If bump channel exists (useful for testing purposes)
     if (bumpChannel) {
-        // Bump, and call recursively with a slightly random timeout (9h + (0-5 min))
+        // Bump
         bumpChannel.send("dlm!bump");
-        setTimeout(dlmBump, "9h".toMs() + (Math.random() * "5m".toMs()));
+
+        // Call recursively with a timeout
+        let time = "9h".toMs() + Math.floor(Math.random() * "1m".toMs());
+        config.nextBump = Date.now() + time;
+        setTimeout(dlmBump, time);
     }
 }
 
@@ -715,7 +719,11 @@ bot.once("ready", () => {
     // Get channels
     bumpChannel = hentaiMoutarde.channels.get("311496070074990593");
     modLogs = hentaiMoutarde.channels.get("403840920119672842");
-    dlmBump();
+    if (config.nextBump <= Date.now()) {
+        dlmBump();
+    } else {
+        setTimeout(dlmBump, config.nextBump - Date.now())
+    }
 
     // Load timeouts for temporary mod actions
     config.tempActions.forEach(async action => {
@@ -751,6 +759,9 @@ bot.once("ready", () => {
             }, action[2] - Date.now());
         }
     });
+
+    if (bumpChannel)
+        bumpChannel.send("J'ai été mise à jour !");
 });
 
 async function potentialDuplicate(url) {
