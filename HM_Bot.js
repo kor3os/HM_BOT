@@ -19,6 +19,7 @@ const bot = new Discord.Client();
 
 // Bot configuration
 let config, msgCount, duplicates;
+let logIgnore = [];
 
 // Static channels
 let hentaiMoutarde, bumpChannel, modLogs;
@@ -131,10 +132,12 @@ function warnMember(member, reason = "") {
 
 // Send a log message to #modlogs
 function sendLog(obj) {
-    let {channel, member, reason, mod, action} = obj;
+    let {channel, user, reason, mod, action} = obj;
+
+    if (obj.member) user = obj.member.user;
 
     let title = obj.customTitle ? obj.title :
-        (member ? `**${member.user.tag}** a été **${action}**` : action);
+        (user ? `**${user.tag}** a été **${action}**` : action);
     let desc = obj.customDesc ? obj.desc :
         (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "");
 
@@ -144,8 +147,8 @@ function sendLog(obj) {
         .setTimestamp();
 
     if (member)
-        embed.setThumbnail(member.user.displayAvatarURL)
-            .setFooter(member.user.id);
+        embed.setThumbnail(user.displayAvatarURL)
+            .setFooter(user.id);
 
     modLogs.send({embed});
 }
@@ -331,7 +334,7 @@ class ModAction extends Command {
                     channel.send(`**${memberArg.user.tag}** a été ${name} `
                         + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
 
-                    sendLog({action: name, member: {user: memberArg.user}, reason: reason || "Aucune raison", mod: member, channel});
+                    sendLog({action: name, member: memberArg, reason: reason || "Aucune raison", mod: member, channel});
                 }
             }, modRoles);
     }
@@ -529,20 +532,33 @@ function loadCommands() {
             }),
 
         new ModAction("kick", "Kick un utilisateur.",
-            async (memberArg, reason) => await memberArg.kick(reason)),
+            async (memberArg, reason) => {
+                logIgnore.push(memberArg.user.id);
+                await memberArg.kick(reason);
+            }),
 
         new ModAction("softban", "Ban, puis déban tout de suite un utilisateur. Supprime un jour de messages.",
-            async (memberArg, reason) =>
+            async (memberArg, reason) => {
+                logIgnore.push(memberArg.user.id);
                 await memberArg.ban({days: 1, reason})
-                    .then(member => hentaiMoutarde.unban(member))),
+                    .then(member => {
+                        logIgnore.push(memberArg.user.id);
+                        hentaiMoutarde.unban(member);
+                    });
+        }),
 
         new ModAction("tempban", "Ban un utilisateur pendant un certain temps. Supprime un jour de messages.",
             async (memberArg, reason, time) => {
                 config.tempActions.push(["ban", memberArg.user.id, Date.now() + time]);
                 saveConfig();
+
+                logIgnore.push(memberArg.user.id);
                 await memberArg.ban({days: 1, reason});
+
                 setTimeout(() => {
+                    logIgnore.push(memberArg.user.id);
                     hentaiMoutarde.unban(memberArg);
+
                     cleanupTempActions();
 
                     sendLog({action: "unban", member: memberArg, reason: "Fin du délai de ban"});
@@ -551,7 +567,9 @@ function loadCommands() {
 
         new ModAction("ban", "Ban un utilisateur, et supprime 1 jour de messages.",
             async (memberArg, reason) => {
+                logIgnore.push(memberArg.user.id);
                 await memberArg.ban({days: 1, reason});
+
                 config.tempActions = config.tempActions.filter(action => action[1] === memberArg.user.id);
                 saveConfig();
             }),
@@ -565,6 +583,7 @@ function loadCommands() {
                 config.tempActions = config.tempActions.filter(action => action[0] === "ban" && action[1] === memberArg.user.id);
                 saveConfig();
 
+                logIgnore.push(memberArg.user.id);
                 await hentaiMoutarde.unban(args[0]);
                 channel.send(`**${user ? user.tag : args[0]}** a été unban `
                     + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
@@ -708,7 +727,7 @@ bot.once("ready", () => {
             fun = () => {
                 hentaiMoutarde.unban(action[1]);
 
-                sendLog({action: "unban", member: {user: usr}, reason: "Fin du délai de ban"});
+                sendLog({action: "unban", user: usr, reason: "Fin du délai de ban"});
             };
 
         else if (action[0] === "mute")
@@ -716,7 +735,7 @@ bot.once("ready", () => {
                 let mem = hentaiMoutarde.members.get(action[1]);
                 if (mem) mem.removeRole(getRole("GOULAG"));
 
-                sendLog({action: "unmute", member: {user: usr}, reason: "Fin du délai de mute"});
+                sendLog({action: "unmute", user: usr, reason: "Fin du délai de mute"});
             };
 
         // If time has passed, run straight away
@@ -982,9 +1001,16 @@ bot.on("guildMemberAdd", member => {
 });
 
 // Ban/unban/kick logs
-bot.on("guildBanAdd", (_, user) => sendLog({action: "ban", member: {user}}));
-bot.on("guildBanRemove", (_, user) => sendLog({action: "unban", member: {user}}));
-bot.on("guildMemberRemove", member => sendLog({action: "kick", member}));
+function logGuildEvent(action, user) {
+    if (logIgnore.includes(user.id))
+        logIgnore.splice(logIgnore.indexOf(user.id), 1);
+    else
+        sendLog({action: action, user});
+}
+
+bot.on("guildBanAdd", (_, user) => logGuildEvent("ban", user));
+bot.on("guildBanRemove", (_, user) => logGuildEvent("unban", user));
+bot.on("guildMemberRemove", member => logGuildEvent("kick", member.user));
 
 // Message logs
 bot.on("messageDelete", message => {
