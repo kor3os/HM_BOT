@@ -146,7 +146,7 @@ function sendLog(obj) {
         .setDescription(desc.trim())
         .setTimestamp();
 
-    if (member)
+    if (user)
         embed.setThumbnail(user.displayAvatarURL)
             .setFooter(user.id);
 
