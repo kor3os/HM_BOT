@@ -1019,14 +1019,14 @@ bot.on("messageDelete", message => {
     if (message.author.bot) return;
     sendLog({
         customTitle: true, title: `Message supprimé`,
-        user: message.author, mod: message.author, reason: message.content
+        user: message.author, mod: message.author, channel: message.channel, reason: message.content
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
     if (oldMsg.author.bot) return;
     sendLog({
         customTitle: true, title: `Message de **${oldMsg.author.tag}** édité dans **#${oldMsg.channel.name}**`,
-        user: oldMsg.author, mod: oldMsg.author, reason: oldMsg.content + "\n" + newMsg.content
+        user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: oldMsg.content + "\n" + newMsg.content
     });
 });
 
