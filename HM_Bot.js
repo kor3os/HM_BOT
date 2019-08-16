@@ -992,13 +992,13 @@ bot.on("guildMemberRemove", (_, user) => sendLog({action: "kick", member: {user}
 bot.on("messageDelete", message => {
     sendLog({
         customTitle: true, title: `Message de ${message.author} supprimé dans ${message.channel}`,
-        customDesc: true, desc: message.content, member: message.author
+        customDesc: true, desc: message.content, member: {user: message.author}
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
     sendLog({
         customTitle: true, title: `Message de ${oldMsg.author} édité dans ${oldMsg.channel}`,
-        customDesc: true, desc: oldMsg.content + "\n---\n" + newMsg.content, member: oldMsg.author
+        customDesc: true, desc: oldMsg.content + "\n---\n" + newMsg.content, member: {user: oldMsg.author}
     });
 });
 
