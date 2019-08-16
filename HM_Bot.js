@@ -1005,7 +1005,7 @@ function logGuildEvent(action, user) {
     if (logIgnore.includes(user.id))
         logIgnore.splice(logIgnore.indexOf(user.id), 1);
     else
-        sendLog({action: action, user});
+        sendLog({action, user});
 }
 
 bot.on("guildBanAdd", (_, user) => logGuildEvent("ban", user));
@@ -1016,15 +1016,15 @@ bot.on("guildMemberRemove", member => logGuildEvent("kick", member.user));
 bot.on("messageDelete", message => {
     if (message.author.bot) return;
     sendLog({
-        customTitle: true, title: `Message de **${message.author.tag}** supprimé dans **#${message.channel.name}**`,
-        customDesc: true, desc: message.content, member: {user: message.author}
+        customTitle: true, title: `Message supprimé`,
+        user: message.author, mod: message.author, reason: message.content
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
     if (oldMsg.author.bot) return;
     sendLog({
         customTitle: true, title: `Message de **${oldMsg.author.tag}** édité dans **#${oldMsg.channel.name}**`,
-        customDesc: true, desc: oldMsg.content + "\n---\n" + newMsg.content, member: {user: oldMsg.author}
+        user: oldMsg.author, mod: oldMsg.author, reason: oldMsg.content + "\n" + newMsg.content
     });
 });
 
