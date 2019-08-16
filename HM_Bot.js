@@ -135,9 +135,10 @@ function sendLog(action, member, reason, mod, channel) {
 
     modLogs.send({
         embed: new MoutardeEmbed()
-            .setTitle(`**${member.user.tag}** a été **${action}**`)
+            .setTitle((member ? `**${member.user.tag}** a été **${action}**` : action))
             .setDescription(desc.trim())
             .setThumbnail(member.user.displayAvatarURL)
+            .setFooter(member.user.id)
             .setTimestamp()
     });
 }
@@ -794,14 +795,16 @@ bot.on("message", async message => {
             let invite = content.match(/discord\.gg\/([^ ]+)/)[0],
                 guild = await bot.fetchInvite(invite).then(inv => inv.guild);
 
+            let info = `\n**${guild.name}** (${invite})`;
+
             if (guild) {
                 if (guild.name.match(/nude/i)) {
-                    let reas = "Serveur nudes";
+                    let reas = "Serveur nudes" + info;
                     member.ban({days: 1, reason: reas});
 
                     sendLog("ban", member, reas);
                 } else {
-                    reason = "Invitation discord";
+                    reason = "Invitation discord" + info;
                     member.addRole(getRole("GOULAG"));
 
                     sendLog("mute", member, reason);
@@ -971,7 +974,15 @@ bot.on("guildMemberAdd", member => {
     }
 });
 
+// Ban/unban/kick logs
 bot.on("guildBanAdd", (_, user) => sendLog("ban", {user}));
 bot.on("guildBanRemove", (_, user) => sendLog("unban", {user}));
+bot.on("guildMemberRemove", (_, user) => sendLog("kick", {user}));
+
+// Message logs
+bot.on("messageDelete", message => sendLog(`Message de ${message.author} supprimé dans ${message.channel}`, null, message.content));
+bot.on("messageUpdate", (oldMsg, newMsg) => {
+    sendLog(`Message de ${oldMsg.author} édité dans ${oldMsg.channel}`, null, oldMsg.content + "\n---\n" + newMsg.content);
+});
 
 bot.login(secrets.token);
