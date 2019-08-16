@@ -1025,29 +1025,24 @@ function logGuildEvent(action, user) {
         sendLog({action, user});
 }
 
-bot.on("guildBanAdd", (_, user) => {
-    logGuildEvent("ban", user);
-    // Ignore again for remove event
-    logIgnore.push(user.id);
-});
+bot.on("guildBanAdd", (_, user) => logGuildEvent("ban", user));
 bot.on("guildBanRemove", (_, user) => logGuildEvent("unban", user));
-bot.on("guildMemberRemove", member => {
-    // Timeout to be sure ban event is handled first
-    setTimeout(() => {
-        logGuildEvent("kick", member.user);
-    }, 200);
-});
 
 // Message logs
 bot.on("messageDelete", message => {
-    if (message.author.bot) return;
+    if (message.author.bot)
+        return;
+
     sendLog({
         customTitle: true, title: "Message supprimé",
         user: message.author, mod: message.author, channel: message.channel, reason: message.content
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
-    if (oldMsg.author.bot) return;
+    if (oldMsg.author.bot ||
+        oldMsg.content.toLowerCase() === newMsg.content.toLowerCase())
+        return;
+
     sendLog({
         customTitle: true, title: "Message édité",
         user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: oldMsg.content + "\n" + newMsg.content
