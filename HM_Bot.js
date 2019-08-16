@@ -826,6 +826,8 @@ bot.on("message", async message => {
             if (guild) {
                 if (guild.name.match(/nude/i)) {
                     let reas = "Serveur nudes";
+
+                    logIgnore.push(member.user.id);
                     member.ban({days: 1, reason: reas});
 
                     sendLog({action: "ban", member, customDesc: true, desc: `*${reas}*${info}`});
