@@ -130,17 +130,26 @@ function warnMember(member, reason = "") {
 }
 
 // Send a log message to #modlogs
-function sendLog(action, member, reason, mod, channel) {
-    let desc = (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "");
+function sendLog(obj) {
+    let {channel, member, reason, mod, action} = obj;
 
-    modLogs.send({
-        embed: new MoutardeEmbed()
-            .setTitle((member ? `**${member.user.tag}** a été **${action}**` : action))
-            .setDescription(desc.trim())
-            .setThumbnail(member.user.displayAvatarURL)
-            .setFooter(member.user.id)
-            .setTimestamp()
-    });
+    let title = obj.customTitle ?
+        (member ? `**${member.user.tag}** a été **${action}**` : action) :
+        obj.title;
+    let desc = obj.customDesc ?
+        (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "") :
+        obj.desc;
+
+    let embed = new MoutardeEmbed()
+        .setTitle(title.trim())
+        .setDescription(desc.trim())
+        .setTimestamp();
+
+    if (member)
+        embed.setThumbnail(member.user.displayAvatarURL)
+            .setFooter(member.user.id);
+
+    modLogs.send({embed});
 }
 
 // Get score a user needs to get Guide frénétique
@@ -324,7 +333,7 @@ class ModAction extends Command {
                     channel.send(`**${memberArg.user.tag}** a été ${name} `
                         + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
 
-                    sendLog(name, memberArg, reason || "Aucune raison", member, channel);
+                    sendLog({name, memberArg, reason: reason || "Aucune raison", member, channel});
                 }
             }, modRoles);
     }
@@ -508,7 +517,7 @@ function loadCommands() {
                     memberArg.removeRole(getRole("GOULAG"));
                     cleanupTempActions();
 
-                    sendLog("unmute", memberArg, "Fin du délai de warn");
+                    sendLog({action: "unmute", member: memberArg, reason: "Fin du délai de warn"});
                 }, time);
             }, true),
 
@@ -538,7 +547,7 @@ function loadCommands() {
                     hentaiMoutarde.unban(memberArg);
                     cleanupTempActions();
 
-                    sendLog("unban", memberArg, "Fin du délai de ban");
+                    sendLog({action: "unban", member: memberArg, reason: "Fin du délai de ban"});
                 }, time);
             }, true),
 
@@ -701,7 +710,7 @@ bot.once("ready", () => {
             fun = () => {
                 hentaiMoutarde.unban(action[1]);
 
-                sendLog("unban", {user: usr}, "Fin du délai de tempban");
+                sendLog({action: "unban", member: {user: usr}, reason: "Fin du délai de ban"});
             };
 
         else if (action[0] === "mute")
@@ -709,7 +718,7 @@ bot.once("ready", () => {
                 let mem = hentaiMoutarde.members.get(action[1]);
                 if (mem) mem.removeRole(getRole("GOULAG"));
 
-                sendLog("unmute", {user: usr}, "Fin du délai de mute");
+                sendLog({action: "unmute", member: {user: usr}, reason: "Fin du délai de mute"});
             };
 
         // If time has passed, run straight away
@@ -799,15 +808,15 @@ bot.on("message", async message => {
 
             if (guild) {
                 if (guild.name.match(/nude/i)) {
-                    let reas = "Serveur nudes" + info;
+                    let reas = "Serveur nudes";
                     member.ban({days: 1, reason: reas});
 
-                    sendLog("ban", member, reas);
+                    sendLog({action: "ban", member, customDesc: true, desc: `*${reas}*${info}`});
                 } else {
-                    reason = "Invitation discord" + info;
+                    reason = "Invitation discord";
                     member.addRole(getRole("GOULAG"));
 
-                    sendLog("mute", member, reason);
+                    sendLog({action: "mute", member, customDesc: true, desc: `*${reas}*${info}`});
                 }
             }
         }
@@ -846,7 +855,7 @@ bot.on("message", async message => {
 
     // If any of these has been found, warn the user and delete the message
     if (reason !== "") {
-        sendLog("warn", member, reason, null, channel);
+        sendLog({action: "warn", member, channel, reason});
 
         warnMember(member, reason);
         if (warnMsg !== "")
@@ -962,7 +971,7 @@ bot.on("guildMemberAdd", member => {
             "\n*You were muted on the Hentai Moutarde server, as there is a chance you are a bot.\n" +
             "If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*");
 
-        sendLog("mute", member, "Autogoulag");
+        sendLog({action: "mute", member, reason: "Autogoulag"});
     } else {
         bot.channels.get("295533374016192514").send(
             config.welcome
@@ -975,14 +984,22 @@ bot.on("guildMemberAdd", member => {
 });
 
 // Ban/unban/kick logs
-bot.on("guildBanAdd", (_, user) => sendLog("ban", {user}));
-bot.on("guildBanRemove", (_, user) => sendLog("unban", {user}));
-bot.on("guildMemberRemove", (_, user) => sendLog("kick", {user}));
+bot.on("guildBanAdd", (_, user) => sendLog({action: "ban", member: {user}}));
+bot.on("guildBanRemove", (_, user) => sendLog({action: "unban", member: {user}}));
+bot.on("guildMemberRemove", (_, user) => sendLog({action: "kick", member: {user}}));
 
 // Message logs
-bot.on("messageDelete", message => sendLog(`Message de ${message.author} supprimé dans ${message.channel}`, null, message.content));
+bot.on("messageDelete", message => {
+    sendLog({
+        customTitle: true, title: `Message de ${message.author} supprimé dans ${message.channel}`,
+        customDesc: true, desc: message.content, member: message.author
+    });
+});
 bot.on("messageUpdate", (oldMsg, newMsg) => {
-    sendLog(`Message de ${oldMsg.author} édité dans ${oldMsg.channel}`, null, oldMsg.content + "\n---\n" + newMsg.content);
+    sendLog({
+        customTitle: true, title: `Message de ${oldMsg.author} édité dans ${oldMsg.channel}`,
+        customDesc: true, desc: oldMsg.content + "\n---\n" + newMsg.content, member: oldMsg.author
+    });
 });
 
 bot.login(secrets.token);
