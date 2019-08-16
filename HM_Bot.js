@@ -133,12 +133,10 @@ function warnMember(member, reason = "") {
 function sendLog(obj) {
     let {channel, member, reason, mod, action} = obj;
 
-    let title = obj.customTitle ?
-        (member ? `**${member.user.tag}** a été **${action}**` : action) :
-        obj.title;
-    let desc = obj.customDesc ?
-        (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "") :
-        obj.desc;
+    let title = obj.customTitle ? obj.title :
+        (member ? `**${member.user.tag}** a été **${action}**` : action);
+    let desc = obj.customDesc ? obj.desc :
+        (mod || "") + (channel ? " dans " + channel : "") + (reason ? "\n*" + reason + "*" : "");
 
     let embed = new MoutardeEmbed()
         .setTitle(title.trim())
