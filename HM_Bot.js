@@ -158,7 +158,7 @@ function sendLog(obj) {
         embed.attachFile({name: "image.png", attachment: obj.image})
             .setImage("attachement://image.png");
 
-    modLogs.send({embed});
+    if (modLogs) modLogs.send({embed});
 }
 
 // Get score a user needs to get Guide frénétique
@@ -770,9 +770,6 @@ bot.once("ready", () => {
             }, action[2] - Date.now());
         }
     });
-
-    if (bumpChannel)
-        bumpChannel.send("J'ai été mise à jour !");
 });
 
 async function potentialDuplicate(url) {
@@ -1061,7 +1058,6 @@ bot.on("messageDelete", message => {
         return;
 
     let image = imageBuffers[message.id];
-    console.log(image);
     delete imageBuffers[message.id];
 
     sendLog({
