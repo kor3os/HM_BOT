@@ -822,13 +822,15 @@ bot.on("message", async message => {
 
     if (message.attachments.size > 0) {
         let attachs = message.attachments.array()
-            .filter(attach => attach.name.match(/\.(png|jpe?g)$/));
+            .filter(attach => attach.filename.match(/\.(png|jpe?g)$/));
 
-        imageBuffers[message.id] = attachs[0];
+        if (attachs.length > 0) {
+            imageBuffers[message.id] = attachs[0];
 
-        setTimeout(() => {
-            delete imageBuffers[message.id];
-        }, "10min".toMs());
+            setTimeout(() => {
+                delete imageBuffers[message.id];
+            }, "10min".toMs());
+        }
     }
 
     // Run message as command, if it exactly matches a command name (case insensitive)
