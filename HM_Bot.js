@@ -19,7 +19,7 @@ const bot = new Discord.Client();
 
 // Bot configuration
 let config, msgCount, duplicates;
-let logIgnore = [];
+let logIgnore = [], imageBuffers = {};
 
 // Static channels
 let hentaiMoutarde, bumpChannel, modLogs;
@@ -149,6 +149,13 @@ function sendLog(obj) {
     if (user)
         embed.setThumbnail(user.displayAvatarURL)
             .setFooter(user.id);
+
+    if (obj.color)
+        embed.setColor(obj.color);
+
+    if (obj.image)
+        embed.attachFile({name: "image.png", attachment: obj.image})
+            .setImage("attachement://image.png");
 
     modLogs.send({embed});
 }
@@ -813,6 +820,17 @@ bot.on("message", async message => {
         updateMsgCount(member);
     }
 
+    if (message.attachments.size > 0) {
+        let attachs = message.attachments.array()
+            .filter(attach => attach.name.match(/\.(png|jpe?g)$/));
+
+        imageBuffers[message.id] = attachs[0];
+
+        setTimeout(() => {
+            delete imageBuffers[message.id];
+        }, "10min".toMs());
+    }
+
     // Run message as command, if it exactly matches a command name (case insensitive)
     for (let com of commands) {
         if (content.toLowerCase() === com.prefix + com.name
@@ -1033,9 +1051,12 @@ bot.on("messageDelete", message => {
     if (message.author.bot)
         return;
 
+    let image = imageBuffers[message.id];
+    delete imageBuffers[message.id];
+
     sendLog({
         customTitle: true, title: "Message supprimé",
-        user: message.author, mod: message.author, channel: message.channel, reason: message.content
+        user: message.author, mod: message.author, channel: message.channel, reason: message.content, image
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
