@@ -1085,14 +1085,14 @@ bot.on("userUpdate", (oldUser, newUser) => {
     if (oldUser.username !== newUser.username)
         sendLog({
             customTitle: true, title: "Changement de pseudo",
-            mod: newUser, reason: `${oldUser.username} -> ${newUser.username}`
+            mod: newUser, reason: `**Avant:** ${oldUser.username}\n**Après:** ${newUser.username}`
         });
 });
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
     if (oldMember.nickname !== newMember.nickname)
         sendLog({
             customTitle: true, title: "Changement de surnom",
-            mod: newMember, reason: `${oldMember.nickname} -> ${newMember.nickname}`
+            mod: newMember, reason: `**Avant:** ${oldMember.nickname}\n**Après:** ${newMember.nickname}`
         });
 });
 
