@@ -138,9 +138,9 @@ function sendLog(obj) {
 
     if (obj.member) user = obj.member.user;
 
-    let title = obj.customTitle ? obj.title :
+    let title = obj.title ||
         (user ? `**${user.tag}** a été **${action}**` : action);
-    let desc = obj.customDesc ? obj.desc :
+    let desc = obj.desc ||
         (mod || "") + (channel ? " dans " + channel : "") + "\n" + (reason || "");
 
     let embed = new MoutardeEmbed()
@@ -872,12 +872,12 @@ bot.on("message", async message => {
                     logIgnore.push(member.user.id);
                     member.ban({days: 1, reason: reas});
 
-                    sendLog({action: "ban", member, customDesc: true, desc: `*${reas}*${info}`});
+                    sendLog({action: "ban", member, desc: `*${reas}*${info}`});
                 } else {
                     reason = "Invitation discord";
                     member.addRole(getRole("GOULAG"));
 
-                    sendLog({action: "mute", member, customDesc: true, desc: `*${reas}*${info}`});
+                    sendLog({action: "mute", member, desc: `*${reas}*${info}`});
                 }
             }
         }
@@ -1064,7 +1064,7 @@ bot.on("messageDelete", message => {
     delete imageBuffers[message.id];
 
     sendLog({
-        customTitle: true, title: "Message supprimé",
+        title: "Message supprimé",
         user: message.author, mod: message.author, channel: message.channel, reason: message.content,
         image
     });
@@ -1075,23 +1075,25 @@ bot.on("messageUpdate", (oldMsg, newMsg) => {
         return;
 
     sendLog({
-        customTitle: true, title: "Message édité",
+        title: "Message édité",
         user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: `**Avant:** ${oldMsg.content}\n**Après:** ${newMsg.content}`
     });
 });
 
 // Username logs
-bot.on("userUpdate", (oldUser, newUser) => {
-    if (oldUser.username !== newUser.username)
+bot.on("userUpdate", async (oldUser, newUser) => {
+    let member = await hentaiMoutarde.fetchMember(newUser);
+
+    if (oldUser.username !== newUser.username && member.roles.size > 1)
         sendLog({
-            customTitle: true, title: "Changement de pseudo",
+            title: "Changement de pseudo",
             mod: newUser, user: newUser, reason: `**Avant:** ${oldUser.username}\n**Après:** ${newUser.username}`
         });
 });
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
     if (oldMember.nickname !== newMember.nickname)
         sendLog({
-            customTitle: true, title: "Changement de surnom",
+            title: "Changement de surnom",
             mod: newMember, member: newMember, reason: `**Avant:** ${oldMember.nickname}\n**Après:** ${newMember.nickname}`
         });
 });
