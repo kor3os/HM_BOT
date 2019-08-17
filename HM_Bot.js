@@ -5,6 +5,7 @@
 
 // Have any questions ? Go ask Koreos#7227 or PopahGlo#3995 over at HM!
 
+const request = require("request");
 const fs = require("fs");
 const secrets = require("./secrets.json");
 
@@ -825,11 +826,17 @@ bot.on("message", async message => {
             .filter(attach => attach.filename.match(/\.(png|jpe?g)$/));
 
         if (attachs.length > 0) {
-            imageBuffers[message.id] = attachs[0];
+            // Get image as buffer
+            request({url: attachs[0].url, method: "get", encoding: null}, (err, res, data) => {
+                if (err) return;
 
-            setTimeout(() => {
-                delete imageBuffers[message.id];
-            }, "10min".toMs());
+                imageBuffers[message.id] = data;
+
+                // Delete after 10 minutes
+                setTimeout(() => {
+                    delete imageBuffers[message.id];
+                }, "10min".toMs());
+            });
         }
     }
 
@@ -1054,11 +1061,13 @@ bot.on("messageDelete", message => {
         return;
 
     let image = imageBuffers[message.id];
+    console.log(image);
     delete imageBuffers[message.id];
 
     sendLog({
         customTitle: true, title: "Message supprimé",
-        user: message.author, mod: message.author, channel: message.channel, reason: message.content, image
+        user: message.author, mod: message.author, channel: message.channel, reason: message.content,
+        image
     });
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
