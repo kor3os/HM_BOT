@@ -1084,9 +1084,7 @@ bot.on("messageUpdate", (oldMsg, newMsg) => {
 bot.on("userUpdate", async (oldUser, newUser) => {
     let member = await hentaiMoutarde.fetchMember(newUser);
 
-    console.log(member.roles);
-
-    if (oldUser.username !== newUser.username && member.roles.size > 1)
+    if (oldUser.username !== newUser.username && member.roles.size > 2)
         sendLog({
             title: "Changement de pseudo",
             mod: newUser, user: newUser, reason: `**Avant:** ${oldUser.username}\n**Après:** ${newUser.username}`
