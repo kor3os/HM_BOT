@@ -1080,4 +1080,20 @@ bot.on("messageUpdate", (oldMsg, newMsg) => {
     });
 });
 
+// Username logs
+bot.on("userUpdate", (oldUser, newUser) => {
+    if (oldUser.username !== newUser.username)
+        sendLog({
+            customTitle: true, title: "Changement de pseudo",
+            mod: newUser, reason: `${oldUser.username} -> ${newuser.username}`
+        });
+});
+bot.on("guildMemberUpdate", (oldMember, newMember) => {
+    if (oldMember.nickname !== newMember.nickname)
+        sendLog({
+            customTitle: true, title: "Changement de surnom",
+            mod: newMember, reason: `${oldMember.nickname} -> ${newuser.nickname}`
+        });
+});
+
 bot.login(secrets.token);
