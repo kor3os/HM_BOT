@@ -6,6 +6,7 @@
 // Have any questions ? Go ask Koreos#7227 or PopahGlo#3995 over at HM!
 
 const request = require("request");
+const sharp = require("sharp");
 const fs = require("fs");
 const secrets = require("./secrets.json");
 
@@ -818,16 +819,18 @@ bot.on("message", async message => {
         updateMsgCount(member);
     }
 
+    // Save images (for deletion logging)
     if (message.attachments.size > 0) {
         let attachs = message.attachments.array()
             .filter(attach => attach.filename.match(/\.(png|jpe?g)$/));
 
         if (attachs.length > 0) {
             // Get image as buffer
-            request({url: attachs[0].url, method: "get", encoding: null}, (err, res, data) => {
+            request({url: attachs[0].url, method: "get", encoding: null}, async (err, res, data) => {
                 if (err) return;
 
-                imageBuffers[message.id] = data;
+                let opt = {width: 500, height: 500, fit: "inside"};
+                imageBuffers[message.id] = await sharp(data).resize(opt).toBuffer();
 
                 // Delete after 10 minutes
                 setTimeout(() => {

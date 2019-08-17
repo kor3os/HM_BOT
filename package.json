@@ -31,6 +31,7 @@
     "nodemon": "^1.19.1",
     "opusscript": "0.0.6",
     "png-js": "^0.1.1",
-	  "request": "latest"
+    "request": "latest",
+    "sharp": "^0.23.0"
   }
 }
