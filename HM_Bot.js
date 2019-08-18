@@ -153,7 +153,7 @@ async function sendLog(obj) {
                 .setImage("attachment://image.png")
         }).then(msg => link = msg.url);
 
-        desc += `\n[Image supprimée](${link})`
+        desc += `\n[Lien vers l'image](${link})`
     }
 
     let embed = new MoutardeEmbed()
