@@ -1086,15 +1086,15 @@ bot.on("userUpdate", async (oldUser, newUser) => {
 
     if (oldUser.username !== newUser.username && member.roles.size > 2)
         sendLog({
-            title: "Changement de pseudo",
-            mod: newUser, user: newUser, reason: `**Avant:** ${oldUser.username}\n**Après:** ${newUser.username}`
+            title: "Changement de pseudo", mod: newUser, user: newUser,
+            reason: `**Avant:** ${oldUser.username}\n**Après:** ${newUser.username}`
         });
 });
 bot.on("guildMemberUpdate", (oldMember, newMember) => {
     if (oldMember.nickname !== newMember.nickname)
         sendLog({
-            title: "Changement de surnom",
-            mod: newMember, member: newMember, reason: `**Avant:** ${oldMember.nickname}\n**Après:** ${newMember.nickname}`
+            title: "Changement de surnom", mod: newMember, member: newMember,
+            reason: `**Avant:** ${oldMember.nickname || oldMember.user.username}\n**Après:** ${newMember.nickname || newMember.user.username}`
         });
 });
 
