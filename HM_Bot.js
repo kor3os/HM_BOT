@@ -156,7 +156,7 @@ function sendLog(obj) {
         embed.setColor(obj.color);
 
     if (obj.image)
-        embed.attachFile({name: "image.png", attachment: obj.image})
+        embed.attachFile({name: "SPOILER_image.png", attachment: obj.image})
             .setImage("attachment://image.png");
 
     if (modLogs) modLogs.send({embed});
