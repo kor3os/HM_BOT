@@ -24,7 +24,7 @@ let config, msgCount, duplicates;
 let logIgnore = [], imageBuffers = {};
 
 // Static channels
-let hentaiMoutarde, bumpChannel, modLogs;
+let hentaiMoutarde, bumpChannel, modLogs, imageLogs;
 
 // Bot managers
 const spamManager = require("./spammanager.js");
@@ -133,7 +133,7 @@ function warnMember(member, reason = "") {
 }
 
 // Send a log message to #modlogs
-function sendLog(obj) {
+async function sendLog(obj) {
     let {channel, user, reason, mod, action} = obj;
 
     if (obj.member) user = obj.member.user;
@@ -142,6 +142,19 @@ function sendLog(obj) {
         (user ? `**${user.tag}** a été **${action}**` : action);
     let desc = obj.desc ||
         (mod || "") + (channel ? " dans " + channel : "") + "\n" + (reason || "");
+
+    if (obj.image) {
+        let link = "";
+
+        await imageLogs.send({
+            embed: new MoutardeEmbed()
+                .setDescription(`Image de ${user} supprimée dans ${channel}`)
+                .attachFile({name: "image.png", attachment: obj.image})
+                .setImage("attachment://image.png")
+        }).then(msg => link = msg.url);
+
+        desc += `\n[Image supprimée](${link})`
+    }
 
     let embed = new MoutardeEmbed()
         .setTitle(title.trim())
@@ -154,10 +167,6 @@ function sendLog(obj) {
 
     if (obj.color)
         embed.setColor(obj.color);
-
-    if (obj.image)
-        embed.attachFile({name: "SPOILER_image.png", attachment: obj.image})
-            .setImage("attachment://SPOILER_image.png");
 
     if (modLogs) modLogs.send({embed});
 }
@@ -216,7 +225,8 @@ function updateMsgCount(member) {
         && !memberRole(member, "Guide frénétique")
         && Date.now() > member.joinedTimestamp + "30d".toMs()) {
         // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-        member.addRole(getRole("Guide frénétique")).catch(err => {});
+        member.addRole(getRole("Guide frénétique")).catch(err => {
+        });
         /* TODO: Fix welcome message
         Temp disable of the welcome message because obviously bugged
         // Welcome message in #les-bg-pas-pd
@@ -554,7 +564,7 @@ function loadCommands() {
                         logIgnore.push(memberArg.user.id);
                         hentaiMoutarde.unban(member);
                     });
-        }),
+            }),
 
         new ModAction("tempban", "Ban un utilisateur pendant un certain temps. Supprime un jour de messages.",
             async (memberArg, reason, time) => {
@@ -731,10 +741,12 @@ bot.once("ready", () => {
     // Get channels
     bumpChannel = hentaiMoutarde.channels.get("311496070074990593");
     modLogs = hentaiMoutarde.channels.get("403840920119672842");
+    imageLogs = hentaiMoutarde.channels.get("612608652406292482");
+
     if (config.nextBump <= Date.now()) {
         dlmBump();
     } else {
-        setTimeout(dlmBump, config.nextBump - Date.now())
+        setTimeout(dlmBump, config.nextBump - Date.now());
     }
 
     // Load timeouts for temporary mod actions
@@ -784,7 +796,8 @@ async function potentialDuplicate(url) {
                 try {
                     if (hammingDistance(combinedHashes[id], hash) < 20)
                         res({id, hash});
-                } catch (e) {}
+                } catch (e) {
+                }
             }
             res({hash});
         });
@@ -1076,7 +1089,10 @@ bot.on("messageUpdate", (oldMsg, newMsg) => {
 
     sendLog({
         title: "Message édité",
-        user: oldMsg.author, mod: oldMsg.author, channel: oldMsg.channel, reason: `**Avant:** ${oldMsg.content}\n**Après:** ${newMsg.content}`
+        user: oldMsg.author,
+        mod: oldMsg.author,
+        channel: oldMsg.channel,
+        reason: `**Avant:** ${oldMsg.content}\n**Après:** ${newMsg.content}`
     });
 });
 
