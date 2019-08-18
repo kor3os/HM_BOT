@@ -157,7 +157,7 @@ function sendLog(obj) {
 
     if (obj.image)
         embed.attachFile({name: "SPOILER_image.png", attachment: obj.image})
-            .setImage("attachment://image.png");
+            .setImage("attachment://SPOILER_image.png");
 
     if (modLogs) modLogs.send({embed});
 }
