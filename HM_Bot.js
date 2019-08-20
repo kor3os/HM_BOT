@@ -537,7 +537,7 @@ function loadCommands() {
                     memberArg.removeRole(getRole("GOULAG"));
                     cleanupTempActions();
 
-                    sendLog({action: "unmute", member: memberArg, reason: "Fin du délai de warn"});
+                    sendLog({action: "unmute", member: memberArg, reason: "Fin du délai de mute"});
                 }, time);
             }, true),
 
