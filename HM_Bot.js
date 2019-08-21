@@ -1038,7 +1038,7 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
 
 bot.on("guildMemberAdd", member => {
     // If username matches the "auto goulag" regex, add the GOULAG role and send him a pm in case of error
-    if (member.user.username.match(new RegExp(config.autoGoulag))) {
+    /*if (member.user.username.match(new RegExp(config.autoGoulag))) {
         member.addRole(getRole("GOULAG"));
         member.send("Vous avez été mute sur le serveur Hentai Moutarde car nous avons des chances de penser que vous êtes un bot.\n" +
             "Si vous pensez qu'il s'agit d'une erreur, merci de contacter un membre avec le role **Généraux** ou **Salade de fruit**.\n" +
@@ -1046,7 +1046,7 @@ bot.on("guildMemberAdd", member => {
             "If you think this is an error, please contact a member with the **Généraux** or **Salade de fruit** role.*");
 
         sendLog({action: "mute", member, reason: "Autogoulag"});
-    } else {
+    } else {*/
         bot.channels.get("295533374016192514").send(
             config.welcome
                 .replace(/\[mention]/gi, member.toString())
@@ -1054,7 +1054,7 @@ bot.on("guildMemberAdd", member => {
                 .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
         );
         member.addRole(getRole("secte nsfw"));
-    }
+    /*}*/
 });
 
 // Ban/unban/kick logs
