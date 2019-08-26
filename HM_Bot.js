@@ -890,7 +890,7 @@ bot.on("message", async message => {
                     reason = "Invitation discord";
                     member.addRole(getRole("GOULAG"));
 
-                    sendLog({action: "mute", member, desc: `*${reas}*${info}`});
+                    sendLog({action: "mute", member, desc: `*${reason}*${info}`});
                 }
             }
         }
