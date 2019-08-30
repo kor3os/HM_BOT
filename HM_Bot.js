@@ -141,7 +141,7 @@ async function sendLog(obj) {
     let title = obj.title ||
         (user ? `**${user.tag}** a été **${action}**` : action);
     let desc = obj.desc ||
-        (mod || "") + (channel ? " dans " + channel : "") + "\n" + (reason || "");
+        (mod ? `**${mod.tag}**` : "") + (channel ? " dans " + channel : "") + "\n" + (reason || "");
 
     if (obj.image) {
         let link = "";
@@ -158,7 +158,7 @@ async function sendLog(obj) {
 
     let embed = new MoutardeEmbed()
         .setTitle(title.trim())
-        .setDescription(desc.trim())
+        .setDescription(desc.trim().replace(/(^\n|\n$)/g, ""))
         .setTimestamp();
 
     if (user)
