@@ -919,11 +919,11 @@ bot.on("message", async message => {
                 reason = "Message spam";
             }
             // Messages with a repeating char for 3/4 of it
-            else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
+            /*else if (content.length >= 20 && (highestCount + 1) / (message.content.length + 2) > 0.75) {
                 warnMsg = "Prévention anti-flood - ne vous répétez pas.\n" +
                     "*Flood prevention - don't repeat yourself.*";
                 reason = "Message avec répétition";
-            }
+            } NUL*/
         }
     }
 
