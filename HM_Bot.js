@@ -499,8 +499,12 @@ function loadCommands() {
         new Command("m", "setgame",
             "<game>` : Change la phrase de statut du bot.",
             (member, channel, args) => {
-                bot.user.setActivity(args[0]);
-                config.game = args[0];
+                let statustext = "";
+                for(const arg of args){
+                    statustext += arg + " "; //this adds an extra space at the end but you can't see it
+                }
+                bot.user.setActivity(statustext);
+                config.game = statustext;
                 saveConfig();
                 return true;
             }, ["Généraux", "Salade de fruits"]),
