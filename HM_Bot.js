@@ -351,7 +351,7 @@ class ModAction extends Command {
 
                     await fun(memberArg, reason, time);
                     channel.send(`**${memberArg.user.tag}** a été ${name} `
-                        + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
+                        + (reason ? `pour la raison "${reason}"` : "sans raison explicite."));
 
                     sendLog({action: name, member: memberArg, reason: reason || "Aucune raison", mod: member, channel});
                 }
@@ -593,19 +593,13 @@ function loadCommands() {
                 saveConfig();
             }),
 
-        new Command("m", "unban",
-            "Déban un utilisateur.",
-            async (member, channel, args) => {
-                let user = bot.users.get(args[0]),
-                    reason = args.slice(1).join(" ");
+        new ModAction("unban", "Déban un utilisateur.",
+            async (memberArg, reason) => {
+                logIgnore.push(memberArg.user.id);
+                await hentaiMoutarde.unban(args[0]);
 
                 config.tempActions = config.tempActions.filter(action => action[0] === "ban" && action[1] === memberArg.user.id);
                 saveConfig();
-
-                logIgnore.push(memberArg.user.id);
-                await hentaiMoutarde.unban(args[0]);
-                channel.send(`**${user ? user.tag : args[0]}** a été unban `
-                    + (reason ? `pour la raison "${reason}."` : "sans raison explicite."));
             }),
 
         new Command("m", "slowmode",
