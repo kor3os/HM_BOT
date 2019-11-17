@@ -292,7 +292,7 @@ function leaveVoiceChannel() {
 async function startPlayback() {
     while (queue.length > 0) {
         currentSong = queue.splice(0, 1)[0];
-        voiceConnection.playStream(ytdl(currentSong.videoId));
+        voiceConnection.play(ytdl(currentSong.videoId));
         await playbackEnd();
     }
     currentSong = null;
@@ -601,12 +601,15 @@ function loadCommands() {
                             }
 
                             queue.push(details);
+
                             if (currentSong == null)
                                 startPlayback();
+
+                            resolve();
                         });
                     });
 
-                if (args[0].match(/(https?:\\\\)?www\..*]/) && ytdl.validateURL(args[0])) {
+                if (ytdl.validateURL(args[0])) {
                     addQueue(args[0]);
 
                 } else if (ytpl.validateURL(args[0])) {
