@@ -264,8 +264,13 @@ function joinVoiceChannel(member, channel) {
     return new Promise((res, rej) => {
         if (member.voiceChannel) {
             member.voiceChannel.join()
-                .then(conn => voiceConnection = conn)
-                .catch(() => channel.send("Erreur de connection vocale."));
+                .then(conn => {
+                    voiceConnection = conn;
+                })
+                .catch(e => {
+                    channel.send("Erreur de connection vocale.");
+                    console.error(e);
+                });
             res();
         } else {
             channel.send("Vous devez être dans un salon vocal pour utiliser cette commande.");
@@ -635,7 +640,7 @@ function loadCommands() {
                             )
                     });
                 else
-                    channel.send("la file d'attente est vide.");
+                    channel.send("La file d'attente est vide.");
             }),
 
 
