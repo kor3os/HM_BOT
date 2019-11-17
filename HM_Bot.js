@@ -558,6 +558,10 @@ function loadCommands() {
             "` : Fais rejoindre le bot dans votre channel vocal courant.",
             joinVoiceChannel),
 
+        new Command("u", "leave",
+            "` : Fais quitter le bot du channel vocal courant.",
+            leaveVoiceChannel),
+
         new Command("u", "play",
             "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
             async (member, channel, args) => {
