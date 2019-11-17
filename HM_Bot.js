@@ -292,18 +292,16 @@ function leaveVoiceChannel() {
 async function startPlayback() {
     while (queue.length > 0) {
         currentSong = queue.splice(0, 1)[0];
-        voiceConnection.play(ytdl(currentSong.videoId));
-        await playbackEnd();
+        console.log(currentSong.title);
+        await new Promise(res => {
+            voiceConnection.playStream(ytdl(currentSong.videoId))
+                .on("end", res)
+        });
     }
     currentSong = null;
     await leaveVoiceChannel();
 }
 
-function playbackEnd() {
-    return new Promise(res => {
-        voiceConnection.on("end", res);
-    });
-}
 
 class MoutardeEmbed extends Discord.RichEmbed {
     constructor() {
