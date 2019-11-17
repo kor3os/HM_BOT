@@ -279,6 +279,15 @@ function joinVoiceChannel(member, channel) {
     });
 }
 
+function leaveVoiceChannel() {
+    return new Promise((res, rej) => {
+        if (voiceConnection)
+            voiceConnection.end().then(res);
+        else
+            rej();
+    });
+}
+
 async function startPlayback() {
     while (queue.length > 0) {
         currentSong = queue.splice(0, 1)[0];
@@ -286,6 +295,7 @@ async function startPlayback() {
         await playbackEnd();
     }
     currentSong = null;
+    await leaveVoiceChannel();
 }
 
 function playbackEnd() {
@@ -580,7 +590,7 @@ function loadCommands() {
                                         .setTitle(details.title)
                                         .addField("Durée", secsToMins(details.lengthSeconds), true)
                                         .addField("Auteur", details.author, true)
-                                        .setThumbnail(details.thumbnail.thumbnails[0].url)
+                                        .setThumbnail(details.thumbnail.thumbnails.slice(-1)[0].url)
                                 });
                             }
                         }).once("response", res => {
@@ -594,7 +604,7 @@ function loadCommands() {
                         });
                     });
 
-                if (ytdl.validateURL(args[0])) {
+                if (args[0].match(/(https?:\\\\)?www\..*]/) && ytdl.validateURL(args[0])) {
                     download(args[0]);
 
                 } else if (ytpl.validateURL(args[0])) {
@@ -631,13 +641,15 @@ function loadCommands() {
         new Command("u", "queue",
             "` : Affiche la liste d'attente de musiques.",
             (member, channel) => {
-                if (queue.length > 0)
+                if (currentSong != null || queue.length > 0)
                     channel.send({
                         embed: new MoutardeEmbed()
-                            .setTitle("Musiques en attente")
-                            .setDescription(
-                                queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n")
-                            )
+                            .setTitle("Liste de lecture")
+                            .addField("En cours",
+                                "**" + currentSong.details.title + "** (" + secsToMins(currentSong.details.lengthSeconds) + ")")
+                            .addField("En attente",
+                                queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n"),
+                            true)
                     });
                 else
                     channel.send("La file d'attente est vide.");
