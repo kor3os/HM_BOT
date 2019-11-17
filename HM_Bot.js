@@ -519,14 +519,14 @@ function loadCommands() {
                             filter: "audio",
                             lang: "fr"
                         }).once("info", info => {
-                            details = info.videoDetails;
+                            details = info.player_response.videoDetails;
                             if (showInfo) {
                                 channel.send("Ajout de la vidéo dans la file d'attente...", {
                                     embed: new MoutardeEmbed()
                                         .setTitle(details.title)
                                         .addField("Durée", secsToMins(details.lengthSeconds), true)
                                         .addField("Auteur", details.author, true)
-                                        .setThumbnail(details.thumbnail)
+                                        .setThumbnail(details.thumbnail.thumbnails[0].url)
                                 });
                             }
                         }).once("response", res => {
