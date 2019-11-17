@@ -282,7 +282,7 @@ function joinVoiceChannel(member, channel) {
 function leaveVoiceChannel() {
     return new Promise((res, rej) => {
         if (voiceConnection)
-            voiceConnection.end().then(res);
+            voiceConnection.disconnect().then(res);
         else
             rej();
     });
