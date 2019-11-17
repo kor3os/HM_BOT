@@ -295,17 +295,14 @@ function leaveVoiceChannel() {
 async function startPlayback() {
     while (queue.length > 0) {
         currentSong = queue.splice(0, 1)[0];
-        console.log(currentSong.title);
         await new Promise(res => {
-            voiceConnection.playStream(
-                ytdl(currentSong.videoId, {filter: "audioonly"})
-            ).on("end", res);
+            voiceConnection.playStream(currentSong.stream)
+                .on("end", res);
         });
     }
     currentSong = null;
     await leaveVoiceChannel();
 }
-
 
 class MoutardeEmbed extends Discord.RichEmbed {
     constructor() {
@@ -559,7 +556,10 @@ function loadCommands() {
         // Music commands
         new Command("u", "join",
             "` : Fais rejoindre le bot dans votre channel vocal courant.",
-            joinVoiceChannel),
+            async (member, channel) => {
+                await joinVoiceChannel(member, channel);
+                return true;
+            }),
 
         new Command("u", "leave",
             "` : Fais quitter le bot du channel vocal courant.",
@@ -581,16 +581,11 @@ function loadCommands() {
                     new Promise((resolve, reject) => {
                         let details;
 
-                        ytdl.getInfo(args[0], {
+                        ytdl(args[0], {
                             quality: "highestaudio",
-                            filter: "audio",
+                            filter: "audioonly",
                             lang: "fr"
-                        }, (err, info) => {
-                            if (err) {
-                                channel.send("Erreur sur le téléchargement de la vidéo.");
-                                return reject();
-                            }
-
+                        }).on("info", info => {
                             details = info.player_response.videoDetails;
                             if (showInfo) {
                                 channel.send("Ajout de la vidéo dans la file d'attente...", {
@@ -601,13 +596,17 @@ function loadCommands() {
                                         .setThumbnail(details.thumbnail.thumbnails.slice(-1)[0].url)
                                 });
                             }
-
-                            queue.push(details);
+                        }).on("response", res => {
+                            queue.push({details, stream: res});
 
                             if (currentSong == null)
                                 startPlayback();
 
                             resolve();
+                        }).on("error", err => {
+                            channel.send("Erreur sur le téléchargement de la vidéo.");
+                            console.error(err);
+                            return reject();
                         });
                     });
 
@@ -652,11 +651,11 @@ function loadCommands() {
                     let embed = new MoutardeEmbed()
                         .setTitle("Liste de lecture")
                         .addField("En cours",
-                            "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")");
+                            "**" + currentSong.details.title + "** (" + secsToMins(currentSong.details.lengthSeconds) + ")");
 
                     if (queue.length > 0)
                         embed.addField("En attente",
-                            queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"));
+                            queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n"));
 
                     channel.send({embed});
                 } else
@@ -684,8 +683,8 @@ function loadCommands() {
                 return true;
             }),
 
-        new Command("u", "play",
-            "` : Met la liste de lecture en cours en pause.",
+        new Command("u", "resume",
+            "` : Reprends la lecture.",
             () => {
                 let disp = voiceConnection.dispatcher;
                 disp.resume();
@@ -694,6 +693,7 @@ function loadCommands() {
             }),
 
 
+        // Mod commands
         new Command("m", "setgame",
             "<game>` : Change la phrase de statut du bot.",
             (member, channel, args) => {
