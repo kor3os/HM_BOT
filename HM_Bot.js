@@ -566,8 +566,6 @@ function loadCommands() {
         new Command("u", "play",
             "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
             async (member, channel, args) => {
-                let newConnection = false;
-
                 if (voiceConnection == null) {
                     // Try to join
                     await joinVoiceChannel(member, channel);
@@ -575,8 +573,6 @@ function loadCommands() {
                     // If failed, return
                     if (voiceConnection == null)
                         return;
-
-                    newConnection = true;
                 }
 
                 const addQueue = async (url, showInfo = true) =>
@@ -605,6 +601,8 @@ function loadCommands() {
                             }
 
                             queue.push(details);
+                            if (currentSong == null)
+                                startPlayback();
                         });
                     });
 
@@ -645,17 +643,19 @@ function loadCommands() {
         new Command("u", "queue",
             "` : Affiche la liste d'attente de musiques.",
             (member, channel) => {
-                if (currentSong != null || queue.length > 0)
-                    channel.send({
-                        embed: new MoutardeEmbed()
-                            .setTitle("Liste de lecture")
-                            .addField("En cours",
+                if (currentSong != null || queue.length > 0) {
+                    let embed = new MoutardeEmbed()
+                        .setTitle("Liste de lecture")
+                        .addField("En attente",
+                            queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"),
+                            true);
+
+                    if (currentSong != null)
+                        embed.addField("En cours",
                                 "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")")
-                            .addField("En attente",
-                                queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"),
-                            true)
-                    });
-                else
+
+                    channel.send({embed});
+                } else
                     channel.send("La file d'attente est vide.");
             }),
 
