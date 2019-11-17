@@ -10,6 +10,11 @@ const sharp = require("sharp");
 const fs = require("fs");
 const secrets = require("./secrets.json");
 
+// Youtube modules
+const ytdl = require("ytdl-core");
+const ytsr = require("ytsr");
+const ytpl = require("ytpl");
+
 const graph = require("./graph");
 
 const {hammingDistance} = require("blockhash");
@@ -22,6 +27,7 @@ const bot = new Discord.Client();
 // Bot configuration
 let config, msgCount, duplicates;
 let logIgnore = [], imageBuffers = {};
+let queue = [];
 
 // Static channels
 let hentaiMoutarde, bumpChannel, modLogs, imageLogs;
@@ -85,6 +91,10 @@ String.prototype.toMs = function(unit = "ms") {
     }
     return 0;
 };
+
+function secsToMins(n) {
+    return Math.floor(n / 60) + ":" + n % 60;
+}
 
 // Returns today's date
 function today() {
@@ -153,7 +163,7 @@ async function sendLog(obj) {
                 .setImage("attachment://image.png")
         }).then(msg => link = msg.url);
 
-        desc += `\n[Lien vers l'image](${link})`
+        desc += `\n[Lien vers l'image](${link})`;
     }
 
     let embed = new MoutardeEmbed()
@@ -496,15 +506,80 @@ function loadCommands() {
                 });
             }),
 
+        // Music commands
+        new Command("u", "play",
+            "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
+            (member, channel, args) => {
+                const download = async (url, showInfo = true) => {
+                    let details;
+
+                    ytdl(args[0], {
+                        quality: "highestaudio",
+                        filter: "audio",
+                        lang: "fr"
+                    }).once("videoInfo", info => {
+                        details = info.videoDetails;
+                        if (showInfo) {
+                            channel.send("Ajout de la vidéo dans la file d'attente...", {
+                                embed: new MoutardeEmbed()
+                                    .setTitle(details.title)
+                                    .addField("Durée", secsToMins(details.lengthSeconds), true)
+                                    .addField("Auteur", details.author, true)
+                                    .setThumbnail(details.thumbnail)
+                            });
+                        }
+                    }).once("response", res => {
+                        queue.push({details, stream: res});
+                    }).once("error", () => channel.send("Erreur sur le téléchargement de la vidéo."));
+                };
+
+                if (ytdl.validateURL(args[0])) {
+                    download(args[0]);
+                } else if (ytpl.validateURL(args[0])) {
+                    ytpl(args[0])
+                        .then(async res => {
+                            channel.send("Ajout de la playlist dans la file d'attente...", {
+                                embed: new MoutardeEmbed()
+                                    .setTitle(res.title)
+                                    .setDescription(res.description)
+                                    .addField("Vidéos", res.total_items, true)
+                                    .addField("Auteur", res.author.name, true)
+                                    .setThumbnail(res.items[0].thumbnail)
+                            });
+                            for (let item of res.items) {
+                                await download(item.url_simple, false);
+                            }
+                        }).err(() => channel.send("Erreur sur le téléchargement de la playlist."));
+                } else {
+                    ytsr(args.join(" "))
+                        .then(res => {
+                            if (res.items.length > 0)
+                                download(res.items[0].link);
+                            else
+                                channel.send("Aucun résultat trouvé.");
+                        }).err(() => channel.send("Erreur sur la recherche."));
+                }
+            }
+        ),
+
+        new Command("u", "queue",
+            "` : Affiche la liste d'attente de musiques.",
+            (member, channel) => {
+                channel.send({
+                    embed: new MoutardeEmbed()
+                        .setTitle("Musiques en attente")
+                        .setDescription(
+                            queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n")
+                        )
+                });
+            }),
+
+
         new Command("m", "setgame",
             "<game>` : Change la phrase de statut du bot.",
             (member, channel, args) => {
-                let statustext = "";
-                for(const arg of args){
-                    statustext += arg + " "; //this adds an extra space at the end but you can't see it
-                }
-                bot.user.setActivity(statustext);
-                config.game = statustext;
+                bot.user.setActivity(args.join(" "));
+                config.game = args.join(" ");
                 saveConfig();
                 return true;
             }, ["Généraux", "Salade de fruits"]),
@@ -1045,13 +1120,13 @@ bot.on("guildMemberAdd", member => {
 
         sendLog({action: "mute", member, reason: "Autogoulag"});
     } else {*/
-        bot.channels.get("295533374016192514").send(
-            config.welcome
-                .replace(/\[mention]/gi, member.toString())
-                .replace(/\[pseudo]/gi, member.user.username)
-                .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
-        );
-        member.addRole(getRole("secte nsfw"));
+    bot.channels.get("295533374016192514").send(
+        config.welcome
+            .replace(/\[mention]/gi, member.toString())
+            .replace(/\[pseudo]/gi, member.user.username)
+            .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
+    );
+    member.addRole(getRole("secte nsfw"));
     /*}*/
 });
 
