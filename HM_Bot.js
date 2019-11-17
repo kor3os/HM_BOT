@@ -510,28 +510,33 @@ function loadCommands() {
         new Command("u", "play",
             "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
             (member, channel, args) => {
-                const download = async (url, showInfo = true) => {
-                    let details;
+                const download = async (url, showInfo = true) =>
+                    new Promise((resolve, reject) => {
+                        let details;
 
-                    ytdl(args[0], {
-                        quality: "highestaudio",
-                        filter: "audio",
-                        lang: "fr"
-                    }).once("videoInfo", info => {
-                        details = info.videoDetails;
-                        if (showInfo) {
-                            channel.send("Ajout de la vidéo dans la file d'attente...", {
-                                embed: new MoutardeEmbed()
-                                    .setTitle(details.title)
-                                    .addField("Durée", secsToMins(details.lengthSeconds), true)
-                                    .addField("Auteur", details.author, true)
-                                    .setThumbnail(details.thumbnail)
-                            });
-                        }
-                    }).once("response", res => {
-                        queue.push({details, stream: res});
-                    }).once("error", () => channel.send("Erreur sur le téléchargement de la vidéo."));
-                };
+                        ytdl(args[0], {
+                            quality: "highestaudio",
+                            filter: "audio",
+                            lang: "fr"
+                        }).once("videoInfo", info => {
+                            details = info.videoDetails;
+                            if (showInfo) {
+                                channel.send("Ajout de la vidéo dans la file d'attente...", {
+                                    embed: new MoutardeEmbed()
+                                        .setTitle(details.title)
+                                        .addField("Durée", secsToMins(details.lengthSeconds), true)
+                                        .addField("Auteur", details.author, true)
+                                        .setThumbnail(details.thumbnail)
+                                });
+                            }
+                        }).once("response", res => {
+                            queue.push({details, stream: res});
+                            resolve();
+                        }).once("error", () => {
+                            channel.send("Erreur sur le téléchargement de la vidéo.")
+                            reject();
+                        });
+                    });
 
                 if (ytdl.validateURL(args[0])) {
                     download(args[0]);
@@ -549,7 +554,7 @@ function loadCommands() {
                             for (let item of res.items) {
                                 await download(item.url_simple, false);
                             }
-                        }).err(() => channel.send("Erreur sur le téléchargement de la playlist."));
+                        }).catch(() => channel.send("Erreur sur le téléchargement de la playlist."));
                 } else {
                     ytsr(args.join(" "))
                         .then(res => {
@@ -557,7 +562,7 @@ function loadCommands() {
                                 download(res.items[0].link);
                             else
                                 channel.send("Aucun résultat trouvé.");
-                        }).err(() => channel.send("Erreur sur la recherche."));
+                        }).catch(() => channel.send("Erreur sur la recherche."));
                 }
             }
         ),
