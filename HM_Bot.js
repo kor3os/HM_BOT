@@ -518,8 +518,7 @@ function loadCommands() {
                             quality: "highestaudio",
                             filter: "audio",
                             lang: "fr"
-                        }).once("videoInfo", info => {
-                            console.log("info");
+                        }).once("info", info => {
                             details = info.videoDetails;
                             if (showInfo) {
                                 channel.send("Ajout de la vidéo dans la file d'attente...", {
@@ -531,7 +530,6 @@ function loadCommands() {
                                 });
                             }
                         }).once("response", res => {
-                            console.log("response");
                             queue.push({details, stream: res});
                             resolve();
                         }).once("error", () => {
