@@ -281,9 +281,10 @@ function joinVoiceChannel(member, channel) {
 
 function leaveVoiceChannel() {
     return new Promise((res, rej) => {
-        if (voiceConnection)
-            voiceConnection.disconnect().then(res);
-        else
+        if (voiceConnection) {
+            voiceConnection.disconnect();
+            res();
+        } else
             rej();
     });
 }
@@ -291,7 +292,7 @@ function leaveVoiceChannel() {
 async function startPlayback() {
     while (queue.length > 0) {
         currentSong = queue.splice(0, 1)[0];
-        voiceConnection.playStream(currentSong.stream);
+        voiceConnection.playStream(ytdl(currentSong.videoId));
         await playbackEnd();
     }
     currentSong = null;
@@ -578,15 +579,20 @@ function loadCommands() {
                     newConnection = true;
                 }
 
-                const download = async (url, showInfo = true) =>
+                const addQueue = async (url, showInfo = true) =>
                     new Promise((resolve, reject) => {
                         let details;
 
-                        ytdl(args[0], {
+                        ytdl.getInfo(args[0], {
                             quality: "highestaudio",
                             filter: "audio",
                             lang: "fr"
-                        }).once("info", info => {
+                        }, (err, info) => {
+                            if (err) {
+                                channel.send("Erreur sur le téléchargement de la vidéo.");
+                                return reject();
+                            }
+
                             details = info.player_response.videoDetails;
                             if (showInfo) {
                                 channel.send("Ajout de la vidéo dans la file d'attente...", {
@@ -597,19 +603,13 @@ function loadCommands() {
                                         .setThumbnail(details.thumbnail.thumbnails.slice(-1)[0].url)
                                 });
                             }
-                        }).once("response", res => {
-                            queue.push({details, stream: res});
-                            if (newConnection)
-                                startPlayback();
-                            resolve();
-                        }).once("error", () => {
-                            channel.send("Erreur sur le téléchargement de la vidéo.");
-                            reject();
+
+                            queue.push(details);
                         });
                     });
 
                 if (args[0].match(/(https?:\\\\)?www\..*]/) && ytdl.validateURL(args[0])) {
-                    download(args[0]);
+                    addQueue(args[0]);
 
                 } else if (ytpl.validateURL(args[0])) {
                     ytpl(args[0])
@@ -623,7 +623,7 @@ function loadCommands() {
                                     .setThumbnail(res.items[0].thumbnail)
                             });
                             for (let item of res.items) {
-                                await download(item.url_simple, false);
+                                await addQueue(item.url_simple, false);
                             }
                         }).catch(err => {
                             channel.send("Erreur sur le téléchargement de la playlist.");
@@ -634,7 +634,7 @@ function loadCommands() {
                     ytsr(args.join(" "))
                         .then(res => {
                             if (res.items.length > 0)
-                                download(res.items[0].link);
+                                addQueue(res.items[0].link);
                             else
                                 channel.send("Aucun résultat trouvé.");
                         }).catch(() => channel.send("Erreur sur la recherche."));
@@ -650,9 +650,9 @@ function loadCommands() {
                         embed: new MoutardeEmbed()
                             .setTitle("Liste de lecture")
                             .addField("En cours",
-                                "**" + currentSong.details.title + "** (" + secsToMins(currentSong.details.lengthSeconds) + ")")
+                                "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")")
                             .addField("En attente",
-                                queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n"),
+                                queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"),
                             true)
                     });
                 else
