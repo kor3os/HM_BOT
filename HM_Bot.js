@@ -519,6 +519,7 @@ function loadCommands() {
                             filter: "audio",
                             lang: "fr"
                         }).once("videoInfo", info => {
+                            console.log("info");
                             details = info.videoDetails;
                             if (showInfo) {
                                 channel.send("Ajout de la vidéo dans la file d'attente...", {
@@ -530,6 +531,7 @@ function loadCommands() {
                                 });
                             }
                         }).once("response", res => {
+                            console.log("response");
                             queue.push({details, stream: res});
                             resolve();
                         }).once("error", () => {
@@ -540,6 +542,7 @@ function loadCommands() {
 
                 if (ytdl.validateURL(args[0])) {
                     download(args[0]);
+
                 } else if (ytpl.validateURL(args[0])) {
                     ytpl(args[0])
                         .then(async res => {
@@ -555,6 +558,7 @@ function loadCommands() {
                                 await download(item.url_simple, false);
                             }
                         }).catch(() => channel.send("Erreur sur le téléchargement de la playlist."));
+
                 } else {
                     ytsr(args.join(" "))
                         .then(res => {
