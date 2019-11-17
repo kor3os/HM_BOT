@@ -284,6 +284,8 @@ function leaveVoiceChannel() {
         if (voiceConnection) {
             voiceConnection.disconnect();
             res();
+        } else if (bot.voiceConnections.size > 0) {
+
         } else
             rej();
     });
@@ -294,8 +296,9 @@ async function startPlayback() {
         currentSong = queue.splice(0, 1)[0];
         console.log(currentSong.title);
         await new Promise(res => {
-            voiceConnection.playStream(ytdl(currentSong.videoId))
-                .on("end", res)
+            voiceConnection.playStream(
+                ytdl(currentSong.videoId, {filter: "audioonly"})
+            ).on("end", res);
         });
     }
     currentSong = null;
@@ -625,9 +628,9 @@ function loadCommands() {
                                 await addQueue(item.url_simple, false);
                             }
                         }).catch(err => {
-                            channel.send("Erreur sur le téléchargement de la playlist.");
-                            console.error(err);
-                        });
+                        channel.send("Erreur sur le téléchargement de la playlist.");
+                        console.error(err);
+                    });
 
                 } else {
                     ytsr(args.join(" "))
@@ -653,7 +656,7 @@ function loadCommands() {
 
                     if (currentSong != null)
                         embed.addField("En cours",
-                                "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")")
+                            "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")");
 
                     channel.send({embed});
                 } else
