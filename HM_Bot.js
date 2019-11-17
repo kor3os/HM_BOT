@@ -27,7 +27,10 @@ const bot = new Discord.Client();
 // Bot configuration
 let config, msgCount, duplicates;
 let logIgnore = [], imageBuffers = {};
-let queue = [];
+
+// Music
+let queue = [], currentSong;
+let voiceConnection;
 
 // Static channels
 let hentaiMoutarde, bumpChannel, modLogs, imageLogs;
@@ -255,6 +258,35 @@ function topUsers() {
     return Object.entries(msgCount)
         .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
         .sort((e1, e2) => e2[1] - e1[1]);
+}
+
+function joinVoiceChannel(member, channel) {
+    return new Promise((res, rej) => {
+        if (member.voiceChannel) {
+            member.voiceChannel.join()
+                .then(conn => voiceConnection = conn)
+                .catch(() => channel.send("Erreur de connection vocale."));
+            res();
+        } else {
+            channel.send("Vous devez être dans un salon vocal pour utiliser cette commande.");
+            rej();
+        }
+    });
+}
+
+async function startPlayback() {
+    while (queue.length > 0) {
+        currentSong = queue.splice(0, 1)[0];
+        voiceConnection.playStream(currentSong.stream);
+        await playbackEnd();
+    }
+    currentSong = null;
+}
+
+function playbackEnd() {
+    return new Promise(res => {
+        voiceConnection.on("end", res);
+    });
 }
 
 class MoutardeEmbed extends Discord.RichEmbed {
@@ -507,9 +539,26 @@ function loadCommands() {
             }),
 
         // Music commands
+        new Command("u", "join",
+            "` : Fais rejoindre le bot dans votre channel vocal courant.",
+            joinVoiceChannel),
+
         new Command("u", "play",
             "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
-            (member, channel, args) => {
+            async (member, channel, args) => {
+                let newConnection = false;
+
+                if (voiceConnection == null) {
+                    // Try to join
+                    await joinVoiceChannel(member, channel);
+
+                    // If failed, return
+                    if (voiceConnection == null)
+                        return;
+
+                    newConnection = true;
+                }
+
                 const download = async (url, showInfo = true) =>
                     new Promise((resolve, reject) => {
                         let details;
@@ -531,9 +580,11 @@ function loadCommands() {
                             }
                         }).once("response", res => {
                             queue.push({details, stream: res});
+                            if (newConnection)
+                                startPlayback();
                             resolve();
                         }).once("error", () => {
-                            channel.send("Erreur sur le téléchargement de la vidéo.")
+                            channel.send("Erreur sur le téléchargement de la vidéo.");
                             reject();
                         });
                     });
@@ -547,7 +598,7 @@ function loadCommands() {
                             channel.send("Ajout de la playlist dans la file d'attente...", {
                                 embed: new MoutardeEmbed()
                                     .setTitle(res.title)
-                                    .setDescription(res.description)
+                                    .setDescription(res.description || "Aucune description.")
                                     .addField("Vidéos", res.total_items, true)
                                     .addField("Auteur", res.author.name, true)
                                     .setThumbnail(res.items[0].thumbnail)
@@ -555,7 +606,10 @@ function loadCommands() {
                             for (let item of res.items) {
                                 await download(item.url_simple, false);
                             }
-                        }).catch(() => channel.send("Erreur sur le téléchargement de la playlist."));
+                        }).catch(err => {
+                            channel.send("Erreur sur le téléchargement de la playlist.");
+                            console.error(err);
+                        });
 
                 } else {
                     ytsr(args.join(" "))
@@ -572,13 +626,16 @@ function loadCommands() {
         new Command("u", "queue",
             "` : Affiche la liste d'attente de musiques.",
             (member, channel) => {
-                channel.send({
-                    embed: new MoutardeEmbed()
-                        .setTitle("Musiques en attente")
-                        .setDescription(
-                            queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n")
-                        )
-                });
+                if (queue.length > 0)
+                    channel.send({
+                        embed: new MoutardeEmbed()
+                            .setTitle("Musiques en attente")
+                            .setDescription(
+                                queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n")
+                            )
+                    });
+                else
+                    channel.send("la file d'attente est vide.");
             }),
 
 
