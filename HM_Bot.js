@@ -285,7 +285,8 @@ function leaveVoiceChannel() {
             voiceConnection.disconnect();
             res();
         } else if (bot.voiceConnections.size > 0) {
-
+            // Just in case
+            bot.voiceConnections.forEach(conn => conn.disconnect());
         } else
             rej();
     });
