@@ -651,17 +651,46 @@ function loadCommands() {
                 if (currentSong != null || queue.length > 0) {
                     let embed = new MoutardeEmbed()
                         .setTitle("Liste de lecture")
-                        .addField("En attente",
-                            queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"),
-                            true);
-
-                    if (currentSong != null)
-                        embed.addField("En cours",
+                        .addField("En cours",
                             "**" + currentSong.title + "** (" + secsToMins(currentSong.lengthSeconds) + ")");
+
+                    if (queue.length > 0)
+                        embed.addField("En attente",
+                            queue.map(elt => "• **" + elt.title + "** (" + secsToMins(elt.lengthSeconds) + ")").join("\n"));
 
                     channel.send({embed});
                 } else
                     channel.send("La file d'attente est vide.");
+            }),
+
+        new Command("u", "skip",
+            "` : Passe la musique en cours.",
+            () => {
+                let disp = voiceConnection.dispatcher;
+                disp.end();
+
+                return true;
+            }),
+
+        new Command("u", "pause",
+            "` : Met la liste de lecture en cours en pause.",
+            () => {
+                let disp = voiceConnection.dispatcher;
+                if (disp.paused)
+                    disp.resume();
+                else
+                    disp.pause();
+
+                return true;
+            }),
+
+        new Command("u", "play",
+            "` : Met la liste de lecture en cours en pause.",
+            () => {
+                let disp = voiceConnection.dispatcher;
+                disp.resume();
+
+                return true;
             }),
 
 
