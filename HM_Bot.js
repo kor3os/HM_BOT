@@ -986,7 +986,7 @@ async function potentialDuplicate(url) {
 
             for (let id in combinedHashes) {
                 try {
-                    if (hammingDistance(combinedHashes[id], hash) < 20)
+                    if (hammingDistance(combinedHashes[id], hash) < 10)
                         res({id, hash});
                 } catch (e) {
                 }
