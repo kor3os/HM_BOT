@@ -29,6 +29,7 @@ const bot = new Discord.Client();
 // Bot configuration
 let config, msgCount, duplicates;
 let logIgnore = [], imageBuffers = {};
+let welcomeMsg = {};
 
 // Music
 let queue = [], currentSong;
@@ -1230,6 +1231,11 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
     }
 });
 
+bot.on("guildMemberRemove", member => {
+    if (member.joinedTimestamp > Date.now() - config.welcomeTimeout)
+        welcomeMsg[member.id].delete();
+});
+
 bot.on("guildMemberAdd", member => {
     // If username matches the "auto goulag" regex, add the GOULAG role and send him a pm in case of error
     /*if (member.user.username.match(new RegExp(config.autoGoulag))) {
@@ -1246,7 +1252,9 @@ bot.on("guildMemberAdd", member => {
             .replace(/\[mention]/gi, member.toString())
             .replace(/\[pseudo]/gi, member.user.username)
             .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
-    );
+    ).then(msg => {
+        welcomeMsg[member.id] = msg;
+    });
     member.addRole(getRole("secte nsfw"));
     /*}*/
 });
