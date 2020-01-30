@@ -1232,8 +1232,11 @@ bot.on("guildMemberUpdate", (oldMember, newMember) => {
 });
 
 bot.on("guildMemberRemove", member => {
-    if (member.joinedTimestamp > Date.now() - config.welcomeTimeout)
-        welcomeMsg[member.id].delete();
+    // Delete message if member joined during timeout
+    if (welcomeMsg[member.id] && welcomeMsg[member.id].date > Date.now() - config.welcomeTimeout) {
+        welcomeMsg[member.id].message.delete();
+        delete welcomeMsg[member.id];
+    }
 });
 
 bot.on("guildMemberAdd", member => {
@@ -1253,7 +1256,10 @@ bot.on("guildMemberAdd", member => {
             .replace(/\[pseudo]/gi, member.user.username)
             .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
     ).then(msg => {
-        welcomeMsg[member.id] = msg;
+        welcomeMsg[member.id] = {message: msg, date: Date.now()};
+        // Delete entry after timeout
+        setTimeout(() => delete welcomeMsg[member.id],
+            config.welcomeTimeout);
     });
     member.addRole(getRole("secte nsfw"));
     /*}*/
