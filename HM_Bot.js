@@ -17,6 +17,8 @@ const ytpl = require("ytpl");
 
 const graph = require("./graph");
 
+const levenshtein = require('fast-levenshtein');
+
 const {hammingDistance} = require("blockhash");
 const {imageHash} = require("image-hash");
 
@@ -1276,7 +1278,8 @@ bot.on("messageDelete", message => {
 });
 bot.on("messageUpdate", (oldMsg, newMsg) => {
     if (oldMsg.author.bot ||
-        oldMsg.content.toLowerCase() === newMsg.content.toLowerCase())
+        oldMsg.content.toLowerCase() === newMsg.content.toLowerCase() ||
+        levenshtein(oldMsg.content.toLowerCase(), newMsg.content.toLowerCase()) < 3)
         return;
 
     sendLog({

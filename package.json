@@ -24,6 +24,7 @@
     "canvas": "^2.5.0",
     "data-uri-to-buffer": "^2.0.1",
     "discord.js": "^11.5.1",
+    "fast-levenshtein": "^2.0.6",
     "image-hash": "^3.3.9",
     "journalctl": "^1.0.0",
     "jpeg-js": "^0.3.5",
@@ -34,7 +35,7 @@
     "request": "latest",
     "sharp": "^0.23.0",
     "ytdl-core": "^1.0.0",
-    "ytsr": "^0.1.9",
-    "ytpl": "^0.1.18"
+    "ytpl": "^0.1.18",
+    "ytsr": "^0.1.9"
   }
 }
