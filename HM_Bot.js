@@ -1279,7 +1279,7 @@ bot.on("messageDelete", message => {
 bot.on("messageUpdate", (oldMsg, newMsg) => {
     if (oldMsg.author.bot ||
         oldMsg.content.toLowerCase() === newMsg.content.toLowerCase() ||
-        levenshtein(oldMsg.content.toLowerCase(), newMsg.content.toLowerCase()) < 3)
+        levenshtein.get(oldMsg.content.toLowerCase(), newMsg.content.toLowerCase()) < 3)
         return;
 
     sendLog({
