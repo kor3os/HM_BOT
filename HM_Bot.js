@@ -1250,18 +1250,22 @@ bot.on("guildMemberAdd", member => {
 
         sendLog({action: "mute", member, reason: "Autogoulag"});
     } else {*/
-    bot.channels.get("295533374016192514").send(
-        config.welcome
-            .replace(/\[mention]/gi, member.toString())
-            .replace(/\[pseudo]/gi, member.user.username)
-            .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
-    ).then(msg => {
-        welcomeMsg[member.id] = {message: msg, date: Date.now()};
-        // Delete entry after timeout
-        setTimeout(() => delete welcomeMsg[member.id],
-            config.welcomeTimeout);
-    });
-    member.addRole(getRole("secte nsfw"));
+    if (!member.user.bot) {
+        bot.channels.get("295533374016192514").send(
+            config.welcome
+                .replace(/\[mention]/gi, member.toString())
+                .replace(/\[pseudo]/gi, member.user.username)
+                .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
+        ).then(msg => {
+            welcomeMsg[member.id] = {message: msg, date: Date.now()};
+            // Delete entry after timeout
+            setTimeout(() => delete welcomeMsg[member.id],
+                config.welcomeTimeout);
+        });
+        member.addRole(getRole("secte nsfw"));
+    } else {
+        member.addRole(getRole("bot"));
+    }
     /*}*/
 });
 
