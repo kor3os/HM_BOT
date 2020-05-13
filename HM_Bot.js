@@ -884,6 +884,12 @@ function loadCommands() {
                 return true;
             }, [], config.devs),
 
+        new Command("m", "simon",
+            "` : Renvoie un message contenant les arguments.",
+            async (member, channel, args) => {
+                await channel.send(args.join(" "));
+            }, [], config.devs),
+
         new Command("m", "restart",
             "` : Update le bot.",
             () => {
