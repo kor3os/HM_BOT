@@ -919,11 +919,27 @@ function dlmBump() {
 
         // Calculate new bump time
         let time = "9h".toMs() + Math.floor(Math.random() * "1m".toMs());
-        config.nextBump = Date.now() + time;
+        config.dlmBump = Date.now() + time;
         saveConfig();
 
         // Call recursively
         setTimeout(dlmBump, time);
+    }
+}
+
+function dcBump() {
+    // If bump channel exists (useful for testing purposes)
+    if (bumpChannel) {
+        // Bump
+        bumpChannel.send("dc!bump");
+
+        // Calculate new bump time
+        let time = "2h".toMs() + Math.floor(Math.random() * "1m".toMs());
+        config.dcBump = Date.now() + time;
+        saveConfig();
+
+        // Call recursively
+        setTimeout(dcBump, time);
     }
 }
 
@@ -944,11 +960,15 @@ bot.once("ready", () => {
     modLogs = hentaiMoutarde.channels.get("403840920119672842");
     imageLogs = hentaiMoutarde.channels.get("612608652406292482");
 
-    if (config.nextBump <= Date.now()) {
+    if (config.dlmBump <= Date.now())
         dlmBump();
-    } else {
-        setTimeout(dlmBump, config.nextBump - Date.now());
-    }
+    else
+        setTimeout(dlmBump, config.dlmBump - Date.now());
+
+    if (config.dcBump <= Date.now())
+        dcBump();
+    else
+        setTimeout(dcBump, config.dcBump - Date.now());
 
     // Load timeouts for temporary mod actions
     config.tempActions.forEach(async action => {
