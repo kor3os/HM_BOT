@@ -1114,6 +1114,8 @@ bot.on("message", async message => {
                     sendLog({action: "mute", member, desc: `*${reason}*${info}`});
                 }
             }
+        } else if(message.mentions.users.size > 10){
+            reason = "Mass Ping";
         }
 
         // Count chars and get most used one
