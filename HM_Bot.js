@@ -1085,7 +1085,7 @@ bot.on("message", async message => {
 
     let warnMsg = "", reason = "";
 
-    if (!memberRole(member, "Généraux", "Salade de fruits")) {
+    if (!memberRole(member, "Généraux (Admin)", "Fruits (Mod)")) {
         if (content.includes("@everyone")) {
             // Delete @everyone sent by random people (in every channel)
             warnMsg = "Le @​everyone est réservé aux admins ! N'essayez pas de l'utiliser.\n" +
