@@ -1279,7 +1279,8 @@ bot.on("guildMemberAdd", member => {
         sendLog({action: "mute", member, reason: "Autogoulag"});
     } else {*/
     if (!member.user.bot) {
-        bot.channels.get("295533374016192514").send(
+        // TODO: welcome channel id in config
+        bot.channels.get("748590543503753266").send(
             config.welcome
                 .replace(/\[mention]/gi, member.toString())
                 .replace(/\[pseudo]/gi, member.user.username)
