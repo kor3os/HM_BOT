@@ -187,18 +187,6 @@ async function sendLog(obj) {
     if (modLogs) modLogs.send({embed});
 }
 
-// Get score a user needs to get Guide frénétique
-function scoreGoal(member) {
-    let goal = config.minMsgCount;
-
-    for (let roleId of member.roles.keyArray()) {
-        if (config.bonusRoles.includes(roleId))
-            goal -= 50;
-    }
-
-    return goal;
-}
-
 function shiftMessageCounts() {
     for (let user in msgCount) {
         if (msgCount.hasOwnProperty(user)) {
@@ -214,10 +202,8 @@ function shiftMessageCounts() {
     }
 }
 
-// Message count (Guide frénétique)
+// Message count
 function updateMsgCount(member) {
-    let goal = scoreGoal(member);
-
     // If user doesn't have an entry, make count array and set date
     if (msgCount[member.user.id] == null) {
         msgCount[member.user.id] = {
@@ -233,27 +219,6 @@ function updateMsgCount(member) {
     msgCount[member.user.id].counts[0]++;
 
     saveJson(msgCount, "msgCount");
-
-    // Remove/add role with total count
-    let totalCount = msgCount[member.user.id].counts.reduce((n, a) => a + n, 0);
-
-    if (totalCount >= goal
-        && !memberRole(member, "Guide frénétique")
-        && Date.now() > member.joinedTimestamp + "30d".toMs()) {
-        // Give role to people above the treshold (and who joined at least 30 days ago) if they don't have it
-        member.addRole(getRole("Guide frénétique")).catch(err => {
-        });
-        /* TODO: Fix welcome message
-        Temp disable of the welcome message because obviously bugged
-        // Welcome message in #les-bg-pas-pd
-        const lesbg = bot.channels.get("590507964280995859");
-        lesbg.send(`Bienvenue dans ${lesbg}, ${member}.`);
-        */
-    } else if (totalCount < goal
-        && memberRole(member, "Guide frénétique")) {
-        // Remove role from people under the treshold if they have it
-        member.removeRole(getRole("Guide frénétique"));
-    }
 }
 
 // Get list of [user, score] sorted by score (descending)
@@ -261,50 +226,6 @@ function topUsers() {
     return Object.entries(msgCount)
         .map(e => [e[0], e[1].counts.reduce((a, b) => a + b, 0)])
         .sort((e1, e2) => e2[1] - e1[1]);
-}
-
-function joinVoiceChannel(member, channel) {
-    return new Promise((res, rej) => {
-        if (member.voiceChannel) {
-            member.voiceChannel.join()
-                .then(conn => {
-                    voiceConnection = conn;
-                })
-                .catch(e => {
-                    channel.send("Erreur de connection vocale.");
-                    console.error(e);
-                });
-            res();
-        } else {
-            channel.send("Vous devez être dans un salon vocal pour utiliser cette commande.");
-            rej();
-        }
-    });
-}
-
-function leaveVoiceChannel() {
-    return new Promise((res, rej) => {
-        if (voiceConnection) {
-            voiceConnection.disconnect();
-            res();
-        } else if (bot.voiceConnections.size > 0) {
-            // Just in case
-            bot.voiceConnections.forEach(conn => conn.disconnect());
-        } else
-            rej();
-    });
-}
-
-async function startPlayback() {
-    while (queue.length > 0) {
-        currentSong = queue.splice(0, 1)[0];
-        await new Promise(res => {
-            voiceConnection.playStream(currentSong.stream)
-                .on("end", res);
-        });
-    }
-    currentSong = null;
-    await leaveVoiceChannel();
 }
 
 class MoutardeEmbed extends Discord.RichEmbed {
@@ -364,15 +285,10 @@ class Command {
             // Else if the first argument is numbers, treat it as an id
             if (args[0].match(/^[0-9]+$/))
                 memberArg = hentaiMoutarde.members.get(args[0]);
-            // Else, find a user with an username matching perfectly the first arg...
+            // Else, find a user with an username matching perfectly the first arg
             else if (args[0])
                 memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase() === args[0].toLowerCase()
                     || mem.user.tag === args[0] || (mem.nickname && mem.nickname.toLowerCase() === args[0].toLowerCase()));
-
-            // ... or one that contains the first arg.
-            if (memberArg == null)
-                memberArg = hentaiMoutarde.members.find(mem => mem.user.username.toLowerCase().includes(args[0].toLowerCase()) ||
-                    (mem.nickname && mem.nickname.toLowerCase().includes(args[0].toLowerCase())));
         }
 
         // If user has one of this.roles OR is in this.users OR both are empty ...
@@ -492,7 +408,7 @@ function loadCommands() {
                 if (top.length > 0) {
                     // Reduce array to build string with top
                     let topStr = top.reduce((s, e, i) => {
-                        let user = bot.users.get(e[0].match(/[0-9]+/)[0]);
+                        let user = bot.users.resolve(e[0].match(/[0-9]+/)[0]);
                         // Format string as "#Rank Username           Score" with padding + cutting
                         return s + "\n" +
                             ("#" + (i + pageN + 1)).padEnd(5) + " " +
@@ -523,7 +439,7 @@ function loadCommands() {
                     channel.send({
                         embed: new MoutardeEmbed()
                             .setTitle(`Score de ${memberArg.user.tag} (${config.daysMsgCount} jours)`)
-                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**\nScore pour Guide frénétique : **${scoreGoal(memberArg)}**`)
+                            .setDescription(`Rang d'utilisateur : **#${rank}**\nNombre total de messages : **${tot}**\nMoyenne de messages par jour : **${avg}**`)
                     });
                 } else {
                     channel.send(`Pas de données pour l'utilisateur ${memberArg.user.tag}`);
@@ -556,152 +472,12 @@ function loadCommands() {
                 });
             }),
 
-        // Music commands
-        new Command("u", "join",
-            "` : Fais rejoindre le bot dans votre channel vocal courant.",
-            async (member, channel) => {
-                await joinVoiceChannel(member, channel);
-                return true;
-            }),
-
-        new Command("u", "leave",
-            "` : Fais quitter le bot du channel vocal courant.",
-            leaveVoiceChannel),
-
-        new Command("u", "play",
-            "<url/search/playlist>` : Ajoute une musique a la file d'attente.",
-            async (member, channel, args) => {
-                if (voiceConnection == null) {
-                    // Try to join
-                    await joinVoiceChannel(member, channel);
-
-                    // If failed, return
-                    if (voiceConnection == null)
-                        return;
-                }
-
-                const addQueue = async (url, showInfo = true) =>
-                    new Promise((resolve, reject) => {
-                        let details;
-
-                        ytdl(args[0], {
-                            quality: "highestaudio",
-                            filter: "audioonly",
-                            lang: "fr"
-                        }).on("info", info => {
-                            details = info.player_response.videoDetails;
-                            if (showInfo) {
-                                channel.send("Ajout de la vidéo dans la file d'attente...", {
-                                    embed: new MoutardeEmbed()
-                                        .setTitle(details.title)
-                                        .addField("Durée", secsToMins(details.lengthSeconds), true)
-                                        .addField("Auteur", details.author, true)
-                                        .setThumbnail(details.thumbnail.thumbnails.slice(-1)[0].url)
-                                });
-                            }
-                        }).on("response", res => {
-                            queue.push({details, stream: res});
-
-                            if (currentSong == null)
-                                startPlayback();
-
-                            resolve();
-                        }).on("error", err => {
-                            channel.send("Erreur sur le téléchargement de la vidéo.");
-                            console.error(err);
-                            return reject();
-                        });
-                    });
-
-                if (ytdl.validateURL(args[0])) {
-                    addQueue(args[0]);
-
-                } else if (ytpl.validateURL(args[0])) {
-                    ytpl(args[0])
-                        .then(async res => {
-                            channel.send("Ajout de la playlist dans la file d'attente...", {
-                                embed: new MoutardeEmbed()
-                                    .setTitle(res.title)
-                                    .setDescription(res.description || "Aucune description.")
-                                    .addField("Vidéos", res.total_items, true)
-                                    .addField("Auteur", res.author.name, true)
-                                    .setThumbnail(res.items[0].thumbnail)
-                            });
-                            for (let item of res.items) {
-                                await addQueue(item.url_simple, false);
-                            }
-                        }).catch(err => {
-                        channel.send("Erreur sur le téléchargement de la playlist.");
-                        console.error(err);
-                    });
-
-                } else {
-                    ytsr(args.join(" "))
-                        .then(res => {
-                            if (res.items.length > 0)
-                                addQueue(res.items[0].link);
-                            else
-                                channel.send("Aucun résultat trouvé.");
-                        }).catch(() => channel.send("Erreur sur la recherche."));
-                }
-            }
-        ),
-
-        new Command("u", "queue",
-            "` : Affiche la liste d'attente de musiques.",
-            (member, channel) => {
-                if (currentSong != null || queue.length > 0) {
-                    let embed = new MoutardeEmbed()
-                        .setTitle("Liste de lecture")
-                        .addField("En cours",
-                            "**" + currentSong.details.title + "** (" + secsToMins(currentSong.details.lengthSeconds) + ")");
-
-                    if (queue.length > 0)
-                        embed.addField("En attente",
-                            queue.map(elt => "• **" + elt.details.title + "** (" + secsToMins(elt.details.lengthSeconds) + ")").join("\n"));
-
-                    channel.send({embed});
-                } else
-                    channel.send("La file d'attente est vide.");
-            }),
-
-        new Command("u", "skip",
-            "` : Passe la musique en cours.",
-            () => {
-                let disp = voiceConnection.dispatcher;
-                disp.end();
-
-                return true;
-            }),
-
-        new Command("u", "pause",
-            "` : Met la liste de lecture en cours en pause.",
-            () => {
-                let disp = voiceConnection.dispatcher;
-                if (disp.paused)
-                    disp.resume();
-                else
-                    disp.pause();
-
-                return true;
-            }),
-
-        new Command("u", "resume",
-            "` : Reprends la lecture.",
-            () => {
-                let disp = voiceConnection.dispatcher;
-                disp.resume();
-
-                return true;
-            }),
-
-
         // Mod commands
         new Command("m", "setgame",
             "<game>` : Change la phrase de statut du bot.",
             (member, channel, args) => {
-                bot.user.setActivity(args.join(" "));
                 config.game = args.join(" ");
+                bot.user.setActivity(config.game);
                 saveConfig();
                 return true;
             }, ["Généraux", "Salade de fruits"]),
@@ -833,18 +609,6 @@ function loadCommands() {
                 }
             }, modRoles),
 
-        new Command("m", "setprotectedname",
-            "<@user> <nom>` : Réserve un nom pour user. Plusieurs noms par user possibles.",
-            (member, channel, args) => {
-                if (args[0].startsWith("<@")) {
-                    config.protectedNames[content.slice(21 + args[0].length)] = args[0].slice(2, -1);
-                    saveConfig();
-                    return true;
-                } else {
-                    channel.send(`Exemple : ${config.prefixM}setprotectedname <@user> <name>`);
-                }
-            }, modRoles),
-
         new Command("m", "welcome",
             "<message>` : Change le message de bienvenue. Possibilité d'utiliser " +
             "[mention] pour insérer une mention du nouvel utilisateur et [pseudo] pour insérer son pseudo.",
@@ -854,13 +618,6 @@ function loadCommands() {
                 return true;
             }, modRoles),
 
-        new Command("m", "reversescore",
-            " <@user>` : Inverse le score d'un utilisateur",
-            (member, channel, args, memberArg) => {
-                msgCount[memberArg.user.id].counts.reverse();
-                return true;
-            }, [], config.devs),
-
         new Command("m", "reload",
             "` : Recharge le fichier de config.",
             () => {
@@ -868,13 +625,14 @@ function loadCommands() {
                 return true;
             }, [], config.devs),
 
-        new Command("m", "autogoulag",
+        // Not useful for now
+        /* new Command("m", "autogoulag",
             "` : Change la regex de goulag automatique au join.",
             (member, channel, args) => {
                 config.autoGoulag = args[0];
                 saveConfig();
                 return true;
-            }, [], config.devs),
+            }, [], config.devs),*/
 
         new Command("m", "config",
             "` : Envoie le fichier de config.",
@@ -885,7 +643,7 @@ function loadCommands() {
             }, [], config.devs),
 
         new Command("m", "simon",
-            "` : Renvoie un message contenant les arguments.",
+            "` : Répète un message.",
             async (member, channel, args) => {
                 await channel.send(args.join(" "));
             }, [], config.devs),
@@ -945,7 +703,7 @@ function dcBump() {
 
 // Runs on bot start
 bot.once("ready", () => {
-    console.log(`Bot started ! ${bot.users.size} users.`);
+    console.log(`Bot started !`);
 
     // Load configuration files
     [config, msgCount, duplicates] = loadJson("config", "msgCount", "duplicates");
@@ -956,9 +714,9 @@ bot.once("ready", () => {
     loadCommands();
 
     // Get channels
-    bumpChannel = hentaiMoutarde.channels.get("311496070074990593");
-    modLogs = hentaiMoutarde.channels.get("403840920119672842");
-    imageLogs = hentaiMoutarde.channels.get("612608652406292482");
+    bumpChannel = hentaiMoutarde.channels.resolve("311496070074990593");
+    modLogs = hentaiMoutarde.channels.resolve("403840920119672842");
+    imageLogs = hentaiMoutarde.channels.resolve("612608652406292482");
 
     if (config.dlmBump <= Date.now())
         dlmBump();
@@ -1100,7 +858,7 @@ bot.on("message", async message => {
             let info = `\n**${guild.name}** (${invite})`;
 
             if (guild) {
-                if (guild.name.match(/nude/i)) {
+                if (guild.name.contains("nude")) {
                     let reas = "Serveur nudes";
 
                     logIgnore.push(member.user.id);
@@ -1114,7 +872,7 @@ bot.on("message", async message => {
                     sendLog({action: "mute", member, desc: `*${reason}*${info}`});
                 }
             }
-        } else if(message.mentions.users.size > 10){
+        } else if (message.mentions.users.size > 10) {
             reason = "Mass Ping";
         }
 
@@ -1180,7 +938,7 @@ bot.on("message", async message => {
                     // If a matching pic has been found
                     if (id) {
                         let [chan, msg, num] = id.split(".");
-                        let originalMsg = await bot.channels.get(chan).fetchMessage(msg);
+                        let originalMsg = await hentaiMoutarde.channels.resolve(chan).fetchMessage(msg);
 
                         let date = new Date(originalMsg.createdTimestamp);
                         let day = ("" + date.getDate()).padStart(2, "0") + "/" + ("" + (date.getMonth() + 1)).padStart(2, "0") + "/" + date.getFullYear(),
@@ -1237,7 +995,7 @@ bot.on("messageDelete", message => {
                 delete duplicates.messages[id];
 
                 let [chan, msg] = id.split(".");
-                bot.channels.get(chan).fetchMessage(msg).then(msg => msg.delete());
+                hentaiMoutarde.channels.get(chan).fetchMessage(msg).then(msg => msg.delete());
 
                 updated = true;
             }
@@ -1280,11 +1038,11 @@ bot.on("guildMemberAdd", member => {
     } else {*/
     if (!member.user.bot) {
         // TODO: welcome channel id in config
-        bot.channels.get("748590543503753266").send(
+        hentaiMoutarde.channels.get("748590543503753266").send(
             config.welcome
                 .replace(/\[mention]/gi, member.toString())
                 .replace(/\[pseudo]/gi, member.user.username)
-                .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.find(chan => chan.name === name).toString())
+                .replace(/#([a-z\-_]+)/g, (_, name) => hentaiMoutarde.channels.cache.find(chan => chan.name === name).toString())
         ).then(msg => {
             welcomeMsg[member.id] = {message: msg, date: Date.now()};
             // Delete entry after timeout
